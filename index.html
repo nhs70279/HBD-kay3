@@ -11,6 +11,52 @@
 (async () => {
   const html = await fetch('old.html?restore=' + Date.now()).then(r => r.text());
 
+  const layoutFix = `<style>
+    @media (max-width: 679px) {
+      html, body {
+        height: 100dvh !important;
+        overflow: hidden !important;
+      }
+      .stage {
+        width: 100vw !important;
+        height: 100dvh !important;
+        padding: 0 !important;
+        align-items: stretch !important;
+        justify-content: stretch !important;
+      }
+      .game-card {
+        width: 100vw !important;
+        max-width: none !important;
+        height: 100dvh !important;
+        max-height: none !important;
+        border-radius: 0 !important;
+        border-left: 0 !important;
+        border-right: 0 !important;
+      }
+      .game-body {
+        padding: .55rem !important;
+        gap: .55rem !important;
+      }
+      .visual-area {
+        min-height: 260px !important;
+        flex: 1.08 1 0 !important;
+      }
+      .visual-area svg {
+        width: 98% !important;
+        height: 98% !important;
+        max-width: none !important;
+        max-height: none !important;
+      }
+      .narration-area {
+        min-height: 300px !important;
+        padding: .9rem !important;
+      }
+      .action-panel {
+        padding-bottom: max(.55rem, env(safe-area-inset-bottom)) !important;
+      }
+    }
+  </style>`;
+
   const oldScene = `text: 'アジトに潜入すると、奪われた特製ケーキを守るように抱きかかえる、寂しがり屋のウサギの妖精「ラビ」がいた。\\n\\n「うぅ……ごめんなさい、ボク、誰もお誕生日を祝ってくれなくてすっごく寂しかったんだ……おいしそうなケーキを1回でお腹いっぱい食べてみたくて……」\\n\\n彼は怯えて震えている。説得チャット交渉を始めよう！',`;
   const newScene = `text: 'アジトに潜入すると、奪われた特製ケーキを守るように抱きかかえる、Kayのことが大好きなウサギの妖精「ラビ」がいた。\\n\\nラビはケーキをぎゅっと抱えて、少しだけ気まずそうにしている。\\nどうやらKayさんを喜ばせたくて、サプライズ準備を暴走させてしまったらしい。\\n\\n優しく声をかけて、Kayの誕生日スタッフとして誘ってみよう！',`;
 
@@ -18,6 +64,7 @@
   const newChat = `box.innerHTML = \`<div class="chat-msg-labi"><span class="chat-name">ラビ:</span> ……盗むつもりじゃなかったもん。ボク、Kayのことが大好きだから、いちばんキラキラした誕生日にしてあげたかったんだよぅ……。でも、ケーキを勝手に運んだのは……ちょっとだけ、いや、かなりダメだったかも……。</div>\`;`;
 
   const patched = html
+    .replace('</head>', layoutFix + '</head>')
     .replace(oldScene, newScene)
     .replace("document.getElementById('ai-input-panel').classList.add('visible');", "document.getElementById('ai-input-panel').classList.remove('visible');")
     .replace(oldChat, newChat)
