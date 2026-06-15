@@ -195,7 +195,7 @@
     .replace('<!-- Cake body -->\n            <g class="floating" filter="url(#cake-shadow)">', '<!-- Cake body -->\n            <g class="floating" filter="url(#cake-shadow)" transform="translate(200 205) scale(1.18) translate(-200 -205)">')
     .replace('<!-- Cake body -->\n            <g class="floating" filter="url(#cel-shadow)">', '<!-- Cake body -->\n            <g class="floating" filter="url(#cel-shadow)" transform="translate(200 200) scale(1.18) translate(-200 -200)">')
     .replace('<g id="candle-${i}" class="interactive-el" onclick="clickSceneElement(\'candle_${i}\')">', '<g id="candle-${i}" class="interactive-el" onclick="clickSceneElement(\'candle_${i}\')">\n                    <circle cx="${x}" cy="132" r="28" fill="transparent" style="pointer-events:all;"/>')
-    .replace('g.gain.linearRampToValueAtTime(0.03,now+0.02);', 'g.gain.linearRampToValueAtTime(0.085,now+0.02);')
+    .replace('g.gain.linearRampToValueAtTime(0.03,now+0.02);', 'g.gain.linearRampToValueAtTime(0.14,now+0.02);')
     .replace('// ==========================================\n    // DECORATION\n    // ==========================================', '// ==========================================\n    // BLOW MIC DETECTION\n    // ==========================================' + blowMicCode + '\n\n    // ==========================================\n    // DECORATION\n    // ==========================================')
     .replace('function finishDecorating() { playSound(\'fanfare\'); changeScene(\'celebration\',\'forward\'); }', 'function finishDecorating() { playSound(\'fanfare\'); changeScene(\'celebration\',\'forward\'); startBlowDetection(); }')
     .replace('（ケーキの上のロウソクをタップして、息を吹きかけて消してね！）', '（スマホ下部のマイクに向かって息を吹きかけると火が消えるよ！タップでも消せます🕯️）')
