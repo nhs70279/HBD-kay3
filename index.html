@@ -55,6 +55,8 @@
       line-height: 1.6;
     }
     .gift-popup-button {
+      display: block;
+      box-sizing: border-box;
       margin-top: 1.15rem;
       width: 100%;
       border: 0;
@@ -66,6 +68,10 @@
       font-size: 1rem;
       box-shadow: 0 12px 28px rgba(201, 139, 92, .25);
       cursor: pointer;
+      text-decoration: none;
+    }
+    .gift-popup-track {
+      background: linear-gradient(135deg, #f3b562, #d96f7f);
     }
     @keyframes giftFadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes giftPop { from { transform: translateY(16px) scale(.92); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
@@ -166,6 +172,7 @@
             <h2 class="gift-popup-title">Happy Birthday!!</h2>
             <p class="gift-popup-message">Kayさん、お誕生日おめでとう🎊💕</p>
             <div class="gift-popup-note">誕プレは18〜22日くらいに届くよ🎁</div>
+            <a class="gift-popup-button gift-popup-track" href="https://del.dhl.com/jsp/redirect_page.xhtml?AWB=3D7yh2uVfBC5g8wFIJ3iLA&amp;OSVA=xZuKi61SC25Y-htN8oTbXw&amp;locale=en-JP" target="_blank" rel="noopener noreferrer">誕プレ追跡 🚚</a>
             <button class="gift-popup-button" type="button" onclick="document.getElementById('gift-popup-backdrop')?.remove()">OK 🎂</button>
           </div>
         \`;
