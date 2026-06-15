@@ -1,0 +1,45 @@
+name: Patch thiefRoom text
+
+on:
+  push:
+    paths:
+      - patch-thiefroom-trigger.txt
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch thiefRoom text only
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          new_text = "アジトに潜入すると、奪われた特製ケーキを守るように抱きかかえる、Kayのことが大好きなウサギの妖精「ラビ」がいた。\\n\\n「……盗むつもりじゃなかったもん。ボク、Kayのことが大好きだから、いちばんキラキラした誕生日にしてあげたかったんだよぅ……。でも、どうしたら喜んでくれるかわからなくて……ケーキを見たら、これだ！って思っちゃったの……」\\n\\nラビはケーキをぎゅっと抱えて、少しだけ気まずそうにしている。優しく声をかけて、Kayの誕生日スタッフとして誘ってみよう！"
+
+          pattern = r"(thiefRoom:\s*\{\s*location:\s*'アジトの内部（対峙フェーズ）',\s*text:\s*)'[^']*?'(,\s*render\(\)\s*\{)"
+          replacement = r"\1'" + new_text + r"'\2"
+          s2, n = re.subn(pattern, replacement, s, count=1, flags=re.S)
+          if n != 1:
+              raise SystemExit(f'thiefRoom text replacement failed: {n}')
+
+          p.write_text(s2, encoding='utf-8')
+          PY
+      - name: Commit patched text
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update thiefRoom story text"
+            git push
+          fi
