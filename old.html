@@ -1,0 +1,1968 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BIRTHDAY AGENT - 極上ケーキ奪還作戦</title>
+    <meta name="description" content="今日のミッション：消えた誕生日ケーキを奪還せよ！謎解きアドベンチャーゲーム">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Inter:wght@300;400;600;700&family=Noto+Sans+JP:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* ===== CSS Design Tokens ===== */
+        :root {
+            --bg:           #F5EFEB;
+            --bg-2:         #EDE4DC;
+            --surface:      rgba(255,255,255,0.75);
+            --surface-2:    rgba(255,255,255,0.45);
+            --border:       rgba(255,255,255,0.6);
+            --border-2:     rgba(212,163,115,0.25);
+
+            --text-primary:   #2D2420;
+            --text-secondary: #6B5C52;
+            --text-muted:     #A39281;
+
+            --accent:       #C4825A;       /* warm amber-rose */
+            --accent-2:     #8B6E5E;       /* muted mocha */
+            --accent-3:     #D4A373;       /* gold */
+            --accent-rose:  #E07070;       /* rose */
+            --accent-sage:  #9FB88D;       /* sage green */
+
+            --radius-sm:    .75rem;
+            --radius:       1.25rem;
+            --radius-lg:    2rem;
+
+            --shadow-sm: 0 2px 12px rgba(45,36,32,.08);
+            --shadow:    0 8px 32px rgba(45,36,32,.12);
+            --shadow-lg: 0 20px 60px rgba(45,36,32,.18);
+
+            --ease-out-expo: cubic-bezier(0.16,1,0.3,1);
+            --ease-bounce:   cubic-bezier(0.34,1.56,0.64,1);
+        }
+
+        /* ===== Reset & Base ===== */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            background: var(--bg);
+            color: var(--text-primary);
+            touch-action: manipulation;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ===== Scrollbar ===== */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--accent-3); border-radius: 99px; }
+
+        /* ===== Animated Background ===== */
+        .bg-stage {
+            position: fixed; inset: 0; z-index: 0;
+            overflow: hidden; pointer-events: none;
+        }
+        .orb {
+            position: absolute; border-radius: 50%;
+            filter: blur(80px); opacity: .55;
+            will-change: transform;
+        }
+        .orb-1 {
+            width: 55vw; height: 55vw;
+            top: -15%; left: -15%;
+            background: radial-gradient(circle, #EADCC9 0%, #E6C9A8 100%);
+            animation: orbFloat1 14s ease-in-out infinite;
+        }
+        .orb-2 {
+            width: 65vw; height: 65vw;
+            bottom: -20%; right: -20%;
+            background: radial-gradient(circle, #E0D3C8 0%, #CFC2B5 100%);
+            animation: orbFloat2 18s ease-in-out infinite;
+        }
+        .orb-3 {
+            width: 40vw; height: 40vw;
+            top: 30%; left: 55%;
+            background: radial-gradient(circle, #CCD5AE60 0%, transparent 70%);
+            animation: orbFloat3 11s ease-in-out infinite;
+        }
+
+        @keyframes orbFloat1 {
+            0%,100% { transform: translate(0,0) scale(1); }
+            50%      { transform: translate(4vw, 3vw) scale(1.07); }
+        }
+        @keyframes orbFloat2 {
+            0%,100% { transform: translate(0,0) scale(1); }
+            50%      { transform: translate(-3vw,-4vw) scale(1.05); }
+        }
+        @keyframes orbFloat3 {
+            0%,100% { transform: translate(0,0) scale(1); opacity:.3; }
+            50%      { transform: translate(-2vw,2vw) scale(1.1); opacity:.5; }
+        }
+
+        /* Stars / sparkle particles */
+        .sparkles { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+        .sparkle {
+            position: absolute; border-radius: 50%;
+            background: var(--accent-3); opacity: 0;
+            animation: twinkle var(--dur, 4s) ease-in-out var(--delay, 0s) infinite;
+        }
+        @keyframes twinkle {
+            0%,100% { opacity:0; transform: scale(.5); }
+            50%      { opacity:.7; transform: scale(1); }
+        }
+
+        /* ===== Confetti Canvas ===== */
+        #confetti-canvas {
+            position: fixed; inset: 0;
+            width: 100%; height: 100%;
+            pointer-events: none; z-index: 100;
+        }
+
+        /* ===== Layout ===== */
+        .stage {
+            position: relative; z-index: 10;
+            display: flex; align-items: center; justify-content: center;
+            width: 100%; height: 100vh;
+            padding: .75rem;
+        }
+
+        /* ===== Game Card (Glassmorphism) ===== */
+        .game-card {
+            position: relative;
+            width: 100%; max-width: 900px;
+            height: 94vh; max-height: 820px;
+            display: flex; flex-direction: column;
+            background: var(--surface);
+            backdrop-filter: blur(24px) saturate(1.6);
+            -webkit-backdrop-filter: blur(24px) saturate(1.6);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255,255,255,.8);
+            overflow: hidden;
+            animation: cardReveal .7s var(--ease-out-expo) both;
+        }
+        @keyframes cardReveal {
+            from { opacity:0; transform: translateY(20px) scale(.97); }
+            to   { opacity:1; transform: translateY(0) scale(1); }
+        }
+
+        /* Shimmer border glow */
+        .game-card::before {
+            content: '';
+            position: absolute; inset: 0;
+            border-radius: inherit;
+            padding: 1.5px;
+            background: linear-gradient(135deg, rgba(255,255,255,.8) 0%, rgba(212,163,115,.4) 50%, rgba(255,255,255,.6) 100%);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor; mask-composite: exclude;
+            pointer-events: none; z-index: 1;
+        }
+
+        /* ===== Header ===== */
+        .game-header {
+            display: none;
+            align-items: center; justify-content: space-between;
+            padding: .75rem 1.25rem;
+            border-bottom: 1px solid rgba(230,223,211,.6);
+            background: rgba(255,255,255,.35);
+            z-index: 20; flex-shrink: 0;
+        }
+        .game-header.visible { display: flex; }
+
+        .status-dot {
+            display: inline-block; width: 8px; height: 8px;
+            border-radius: 50%; background: var(--accent-rose);
+            margin-right: .5rem;
+            animation: ping 1.5s ease-in-out infinite;
+        }
+        @keyframes ping {
+            0%,100% { opacity:1; transform:scale(1); }
+            50%      { opacity:.4; transform:scale(1.4); }
+        }
+        .status-label {
+            font-family: 'Cinzel', serif;
+            font-size: .6rem; letter-spacing: .2em;
+            text-transform: uppercase;
+            color: var(--text-secondary); font-weight: 700;
+        }
+
+        /* Progress Bar */
+        .progress-wrap {
+            flex: 1; max-width: 200px;
+            display: flex; align-items: center; gap: .5rem;
+            margin: 0 1rem;
+        }
+        .progress-label {
+            font-size: .55rem; letter-spacing: .12em; text-transform: uppercase;
+            color: var(--text-muted); font-weight: 700; white-space: nowrap;
+        }
+        .progress-track {
+            flex: 1; height: 4px;
+            background: rgba(212,163,115,.2);
+            border-radius: 99px; overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-3), var(--accent));
+            border-radius: 99px;
+            transition: width .6s var(--ease-out-expo);
+        }
+
+        /* Inventory */
+        .inventory {
+            display: flex; align-items: center; gap: .5rem;
+        }
+        .inv-label {
+            font-size: .55rem; letter-spacing: .15em; text-transform: uppercase;
+            color: var(--text-muted); font-weight: 700;
+        }
+        .inv-slots { display: flex; gap: .35rem; }
+        .inv-slot {
+            width: 34px; height: 34px;
+            border-radius: .6rem;
+            border: 1.5px solid rgba(230,223,211,.5);
+            background: rgba(255,255,255,.4);
+            display: flex; align-items: center; justify-content: center;
+            font-size: .9rem; opacity: .35;
+            transition: all .25s var(--ease-bounce);
+            cursor: default; position: relative;
+        }
+        .inv-slot.filled {
+            opacity: 1; border-color: var(--accent-3);
+            background: rgba(250,248,245,.7);
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(196,130,90,.2);
+        }
+        .inv-slot.filled:hover .inv-tooltip { display: block; }
+        .inv-tooltip {
+            display: none; position: absolute; bottom: calc(100% + 6px); left: 50%;
+            transform: translateX(-50%);
+            background: var(--text-primary); color: #fff;
+            font-size: .6rem; white-space: nowrap;
+            padding: .3rem .6rem; border-radius: .5rem;
+            pointer-events: none; z-index: 99;
+        }
+        .inv-tooltip::after {
+            content: '';
+            position: absolute; top: 100%; left: 50%;
+            transform: translateX(-50%);
+            border: 4px solid transparent; border-top-color: var(--text-primary);
+        }
+
+        /* ===== Game Body ===== */
+        .game-body {
+            flex: 1; display: flex; flex-direction: column;
+            overflow: hidden;
+        }
+        @media (min-width: 680px) {
+            .game-body { flex-direction: row; padding: 1.25rem; gap: 1.25rem; }
+        }
+        @media (max-width: 679px) {
+            .game-body { padding: .75rem; gap: .75rem; }
+        }
+
+        /* Visual Area */
+        .visual-area {
+            flex: 1;
+            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #FAF8F5 0%, #F2EDE7 100%);
+            border-radius: var(--radius);
+            border: 1px solid rgba(235,228,216,.8);
+            overflow: hidden; position: relative;
+            box-shadow: inset 0 2px 8px rgba(45,36,32,.05);
+            min-height: 200px;
+        }
+        @media (min-width: 680px) {
+            .visual-area { width: 50%; flex: none; }
+        }
+
+        /* Narration Area */
+        .narration-area {
+            display: flex; flex-direction: column;
+            justify-content: space-between;
+            background: rgba(255,255,255,.3);
+            border-radius: var(--radius);
+            border: 1px solid rgba(240,234,225,.7);
+            padding: 1rem; overflow: hidden;
+            min-height: 220px;
+        }
+        @media (min-width: 680px) {
+            .narration-area { width: 50%; flex: none; }
+        }
+
+        .location-tag {
+            font-size: .6rem; letter-spacing: .2em; text-transform: uppercase;
+            font-weight: 700; color: var(--text-muted);
+            margin-bottom: .5rem;
+        }
+        .location-tag span {
+            display: inline-block;
+            padding: .2rem .6rem;
+            background: rgba(212,163,115,.15);
+            border-radius: 99px; border: 1px solid rgba(212,163,115,.3);
+        }
+
+        .text-log {
+            flex: 1; overflow-y: auto;
+            padding-right: .25rem;
+        }
+
+        #dialogue-text {
+            font-size: .8rem; line-height: 1.75;
+            color: #3D3530; white-space: pre-line; font-weight: 500;
+        }
+
+        /* Typewriter cursor */
+        .cursor {
+            display: inline-block; width: 2px; height: 1em;
+            background: var(--accent); vertical-align: middle;
+            margin-left: 1px; animation: blink .7s step-end infinite;
+        }
+        @keyframes blink {
+            0%,100% { opacity:1; }
+            50%      { opacity:0; }
+        }
+
+        /* Chat Box */
+        .ai-chat-box {
+            display: none; flex-direction: column;
+            gap: .5rem; margin-top: .75rem;
+            padding-top: .75rem;
+            border-top: 1px solid rgba(235,228,216,.8);
+            font-size: .75rem;
+        }
+        .ai-chat-box.visible { display: flex; }
+
+        .chat-msg-labi {
+            background: rgba(250,248,245,.9);
+            border: 1px solid rgba(235,228,216,.8);
+            border-radius: var(--radius-sm);
+            padding: .5rem .75rem; line-height: 1.55;
+            color: #5E4E42;
+        }
+        .chat-msg-labi .chat-name {
+            font-weight: 700; color: var(--accent-rose); margin-right: .3rem;
+        }
+        .chat-msg-player {
+            background: rgba(196,130,90,.12);
+            border: 1px solid rgba(196,130,90,.2);
+            border-radius: var(--radius-sm);
+            padding: .5rem .75rem; line-height: 1.55;
+            color: var(--text-primary);
+            align-self: flex-end; max-width: 92%; text-align: right;
+        }
+        .chat-loading {
+            background: rgba(250,248,245,.9);
+            border: 1px solid rgba(235,228,216,.8);
+            border-radius: var(--radius-sm);
+            padding: .5rem .75rem; color: var(--text-muted); font-style: italic;
+        }
+
+        /* Action Panel */
+        .action-area {
+            margin-top: .75rem; display: flex; flex-direction: column; gap: .5rem;
+            flex-shrink: 0;
+        }
+
+        /* AI input */
+        .ai-input-panel {
+            display: none; gap: .5rem; align-items: center;
+            background: rgba(255,255,255,.7);
+            border: 1.5px solid rgba(230,223,211,.8);
+            border-radius: var(--radius-sm); padding: .4rem .5rem;
+        }
+        .ai-input-panel.visible { display: flex; }
+        .ai-input {
+            flex: 1; background: transparent; border: none; outline: none;
+            font-size: .75rem; color: var(--text-primary);
+            font-family: inherit; padding: .35rem .5rem;
+        }
+        .ai-input::placeholder { color: var(--text-muted); }
+        .ai-send-btn {
+            background: var(--accent-2); color: #fff; border: none; cursor: pointer;
+            padding: .45rem .9rem; border-radius: .65rem;
+            font-size: .7rem; font-weight: 700; font-family: inherit;
+            transition: background .2s, transform .15s var(--ease-bounce);
+        }
+        .ai-send-btn:hover { background: var(--accent); transform: scale(1.04); }
+        .ai-send-btn:active { transform: scale(.97); }
+
+        /* Action panel buttons */
+        #action-panel { display: flex; flex-direction: column; gap: .45rem; }
+
+        /* Button base */
+        .btn {
+            width: 100%; padding: .75rem 1rem;
+            border-radius: var(--radius-sm); border: none; cursor: pointer;
+            font-size: .72rem; font-weight: 700; font-family: inherit;
+            letter-spacing: .04em; transition: all .2s var(--ease-out-expo);
+            position: relative; overflow: hidden;
+            display: flex; align-items: center; justify-content: center; gap: .4rem;
+        }
+        .btn::after {
+            content: '';
+            position: absolute; inset: 0; border-radius: inherit;
+            background: rgba(255,255,255,0);
+            transition: background .15s;
+        }
+        .btn:hover::after { background: rgba(255,255,255,.12); }
+        .btn:active { transform: scale(.97); }
+
+        /* Ripple effect on click */
+        .btn-ripple {
+            position: absolute; border-radius: 50%;
+            background: rgba(255,255,255,.4);
+            transform: scale(0); animation: ripple .5s linear;
+            pointer-events: none;
+        }
+        @keyframes ripple {
+            to { transform: scale(4); opacity: 0; }
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-2) 0%, var(--accent) 100%);
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(196,130,90,.35);
+        }
+        .btn-primary:hover { box-shadow: 0 6px 20px rgba(196,130,90,.45); transform: translateY(-1px); }
+
+        .btn-secondary {
+            background: rgba(255,255,255,.6);
+            border: 1.5px solid rgba(230,223,211,.9);
+            color: var(--accent-2);
+        }
+        .btn-secondary:hover { background: rgba(255,255,255,.8); }
+
+        .btn-rose {
+            background: linear-gradient(135deg, #E07070 0%, #C15A5A 100%);
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(224,112,112,.3);
+        }
+        .btn-rose:hover { box-shadow: 0 6px 20px rgba(224,112,112,.4); transform: translateY(-1px); }
+
+        .btn-sage {
+            background: linear-gradient(135deg, #CCD5AE 0%, #9FB88D 100%);
+            color: #3A4A30;
+            box-shadow: 0 4px 14px rgba(159,184,141,.25);
+        }
+
+        .btn-disabled {
+            background: rgba(220,215,210,.5);
+            color: rgba(120,110,100,.5);
+            cursor: not-allowed; pointer-events: none;
+        }
+
+        /* Name input */
+        .name-input-wrap { margin-bottom: .75rem; }
+        .name-label {
+            display: block; font-size: .62rem; font-weight: 700;
+            color: var(--accent-2); letter-spacing: .12em; text-transform: uppercase;
+            margin-bottom: .4rem;
+        }
+        .name-input {
+            width: 100%; padding: .7rem 1rem;
+            border: 1.5px solid rgba(212,163,115,.4);
+            border-radius: var(--radius-sm);
+            background: rgba(255,255,255,.8);
+            font-size: .8rem; font-weight: 700; font-family: inherit;
+            color: var(--text-primary); outline: none;
+            transition: border-color .2s, box-shadow .2s;
+        }
+        .name-input:focus {
+            border-color: var(--accent-3);
+            box-shadow: 0 0 0 3px rgba(212,163,115,.15);
+        }
+
+        /* Map grid */
+        .map-grid {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: .6rem; padding: .75rem;
+        }
+        .map-node {
+            padding: .9rem .75rem; border-radius: var(--radius-sm);
+            text-align: center; cursor: pointer;
+            border: 1.5px solid rgba(212,163,115,.35);
+            background: rgba(250,248,245,.8);
+            transition: all .25s var(--ease-out-expo);
+        }
+        .map-node:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+        .map-node-icon { font-size: 1.3rem; display: block; margin-bottom: .2rem; }
+        .map-node-name { font-size: .7rem; font-weight: 700; color: var(--accent-2); }
+        .map-node-sub { font-size: .58rem; color: var(--text-muted); margin-top: .1rem; }
+        .map-node.locked {
+            opacity: .45; cursor: not-allowed; pointer-events: none;
+            border-style: dashed;
+        }
+        .map-node.active-loc {
+            border-color: var(--accent-3);
+            background: rgba(212,163,115,.12);
+        }
+
+        /* Plate text input */
+        .plate-input-wrap { margin-bottom: .6rem; }
+        .plate-label {
+            display: block; font-size: .6rem; font-weight: 700;
+            color: var(--accent-2); letter-spacing: .1em; text-transform: uppercase;
+            margin-bottom: .3rem;
+        }
+        .plate-input {
+            width: 100%; padding: .5rem .75rem;
+            border: 1.5px solid rgba(212,163,115,.3);
+            border-radius: .65rem;
+            background: rgba(255,255,255,.7);
+            font-size: .75rem; font-weight: 700; font-family: inherit;
+            color: var(--text-primary); outline: none;
+            transition: border-color .2s;
+        }
+        .plate-input:focus { border-color: var(--accent-3); }
+
+        /* ===== Footer ===== */
+        .game-footer {
+            border-top: 1px solid rgba(240,234,225,.8);
+            padding: .5rem 1.25rem;
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(255,255,255,.35);
+            font-size: .58rem; color: var(--text-muted);
+            flex-shrink: 0; z-index: 20;
+        }
+        .footer-id {
+            font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+        }
+        .footer-controls { display: flex; align-items: center; gap: .75rem; }
+        .footer-btn {
+            background: none; border: none; cursor: pointer;
+            font-size: .58rem; color: var(--text-muted); font-family: inherit;
+            font-weight: 700; display: flex; align-items: center; gap: .25rem;
+            transition: color .2s;
+        }
+        .footer-btn:hover { color: var(--accent-2); }
+
+        /* ===== SVG Interactive Elements ===== */
+        .interactive-el { cursor: pointer; }
+        .interactive-el:hover { filter: brightness(1.12) drop-shadow(0 0 5px rgba(212,163,115,.5)); }
+
+        /* ===== Scene Animations ===== */
+        .floating {
+            animation: float 4s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%,100% { transform: translateY(0) rotate(0deg); }
+            50%      { transform: translateY(-7px) rotate(.8deg); }
+        }
+
+        .flame {
+            animation: flicker 1.1s infinite alternate ease-in-out;
+            transform-origin: center bottom;
+        }
+        @keyframes flicker {
+            0%   { transform: scale(1) rotate(-2deg); fill: #FF8A5B; }
+            50%  { transform: scale(1.1) rotate(2deg); fill: #FF5A5F; }
+            100% { transform: scale(.96) rotate(-1deg); fill: #FFB356; }
+        }
+
+        .scene-fade {
+            animation: sceneFade .45s var(--ease-out-expo) both;
+        }
+        @keyframes sceneFade {
+            from { opacity:0; transform: scale(.97); }
+            to   { opacity:1; transform: scale(1); }
+        }
+
+        /* Item gain pop effect */
+        .item-gain-flash {
+            animation: itemFlash .5s var(--ease-bounce) both;
+        }
+        @keyframes itemFlash {
+            0%   { transform: scale(.5); opacity:0; }
+            60%  { transform: scale(1.2); opacity:1; }
+            100% { transform: scale(1.05); opacity:1; }
+        }
+
+        /* Title logo */
+        .title-logo {
+            font-family: 'Cinzel', serif;
+            font-size: 1.1rem; font-weight: 800;
+            letter-spacing: .15em; text-transform: uppercase;
+            background: linear-gradient(135deg, #C4825A 0%, #8B6E5E 50%, #D4A373 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: .3rem;
+        }
+        .title-sub {
+            font-size: .6rem; letter-spacing: .25em; text-transform: uppercase;
+            color: var(--text-muted); font-weight: 600;
+        }
+
+        /* Item gain notification */
+        .item-notify {
+            display: inline-block; padding: .2rem .6rem;
+            background: linear-gradient(135deg, rgba(212,163,115,.2), rgba(196,130,90,.1));
+            border: 1px solid rgba(212,163,115,.4);
+            border-radius: 99px; font-weight: 700; color: var(--accent);
+            font-size: .72rem;
+        }
+
+        /* View Transition */
+        @keyframes slide-from-right { from { transform: translateX(18px); opacity:0; } }
+        @keyframes slide-to-left    { to   { transform: translateX(-18px); opacity:0; } }
+        @keyframes slide-from-left  { from { transform: translateX(-18px); opacity:0; } }
+        @keyframes slide-to-right   { to   { transform: translateX(18px); opacity:0; } }
+
+        ::view-transition-group(root) { animation: .35s var(--ease-out-expo) both; }
+
+        html:active-view-transition-type(forward)::view-transition-old(root) { animation-name: slide-to-left; }
+        html:active-view-transition-type(forward)::view-transition-new(root) { animation-name: slide-from-right; }
+        html:active-view-transition-type(backward)::view-transition-old(root) { animation-name: slide-to-right; }
+        html:active-view-transition-type(backward)::view-transition-new(root) { animation-name: slide-from-left; }
+
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            .orb, .floating, .flame, .sparkle { animation: none !important; }
+            ::view-transition-group(root) { animation: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Animated Background -->
+    <div class="bg-stage" aria-hidden="true">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+    <div class="sparkles" id="sparkles-container" aria-hidden="true"></div>
+
+    <!-- Confetti Canvas -->
+    <canvas id="confetti-canvas" aria-hidden="true"></canvas>
+
+    <!-- Main Stage -->
+    <main class="stage">
+        <div id="game-card" class="game-card" role="main">
+
+            <!-- Header -->
+            <header id="game-header" class="game-header" aria-label="ゲームステータス">
+                <div style="display:flex;align-items:center;">
+                    <span class="status-dot" aria-hidden="true"></span>
+                    <span class="status-label">Birthday Agent: Active</span>
+                </div>
+
+                <!-- Progress -->
+                <div class="progress-wrap" aria-label="ミッション進行度">
+                    <span class="progress-label">MISSION</span>
+                    <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+                    </div>
+                </div>
+
+                <!-- Inventory -->
+                <div class="inventory">
+                    <span class="inv-label">BAG:</span>
+                    <div class="inv-slots" id="inventory-slots" role="list" aria-label="インベントリ">
+                        <div id="slot-0" class="inv-slot" role="listitem" aria-label="空きスロット">📁<div class="inv-tooltip"></div></div>
+                        <div id="slot-1" class="inv-slot" role="listitem" aria-label="空きスロット">📁<div class="inv-tooltip"></div></div>
+                        <div id="slot-2" class="inv-slot" role="listitem" aria-label="空きスロット">📁<div class="inv-tooltip"></div></div>
+                        <div id="slot-3" class="inv-slot" role="listitem" aria-label="空きスロット">📁<div class="inv-tooltip"></div></div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Body -->
+            <div class="game-body">
+
+                <!-- Left: Visual -->
+                <div class="visual-area" id="visual-area" aria-label="ゲームビジュアル"></div>
+
+                <!-- Right: Narration + Controls -->
+                <div class="narration-area">
+                    <div class="text-log" id="text-log-container">
+                        <div class="location-tag"><span id="location-indicator">System Signal</span></div>
+                        <div id="dialogue-text" aria-live="polite">Initializing...</div>
+                        <div id="ai-chat-box" class="ai-chat-box" aria-label="チャット"></div>
+                    </div>
+
+                    <div class="action-area">
+                        <div id="ai-input-panel" class="ai-input-panel">
+                            <input type="text" id="ai-user-text" class="ai-input"
+                                placeholder="うさぴょんに優しく話しかけてみよう..."
+                                aria-label="ラビへのメッセージ"
+                                onkeydown="if(event.key==='Enter') sendChatMessage()">
+                            <button onclick="sendChatMessage()" id="ai-send-btn" class="ai-send-btn">送信</button>
+                        </div>
+                        <div id="action-panel" aria-label="アクションパネル"></div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Footer -->
+            <footer class="game-footer">
+                <div class="footer-id">MISSION ID: 2026-BIRTHDAY-CAKE</div>
+                <div class="footer-controls">
+                    <button onclick="toggleMusic()" id="music-btn" class="footer-btn" aria-pressed="false">🎵 BGM: OFF</button>
+                    <button onclick="toggleMute()" id="mute-btn" class="footer-btn" aria-pressed="false">🔊 SOUND: ON</button>
+                </div>
+            </footer>
+
+        </div>
+    </main>
+
+    <script>
+    // ==========================================
+    // SPARKLE PARTICLES
+    // ==========================================
+    (function() {
+        const container = document.getElementById('sparkles-container');
+        for (let i = 0; i < 22; i++) {
+            const el = document.createElement('div');
+            el.className = 'sparkle';
+            const size = Math.random() * 3 + 2;
+            el.style.cssText = `
+                width:${size}px; height:${size}px;
+                top:${Math.random()*100}%; left:${Math.random()*100}%;
+                --dur:${3+Math.random()*5}s;
+                --delay:${Math.random()*6}s;
+            `;
+            container.appendChild(el);
+        }
+    })();
+
+    // ==========================================
+    // BUTTON RIPPLE
+    // ==========================================
+    document.addEventListener('click', e => {
+        const btn = e.target.closest('.btn');
+        if (!btn) return;
+        const r = document.createElement('span');
+        r.className = 'btn-ripple';
+        const rect = btn.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        r.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX-rect.left-size/2}px;top:${e.clientY-rect.top-size/2}px`;
+        btn.appendChild(r);
+        r.addEventListener('animationend', () => r.remove());
+    });
+
+    // ==========================================
+    // AUDIO ENGINE
+    // ==========================================
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let isMuted = false;
+    let isMusicPlaying = false;
+    let bgmIntervalId = null;
+    let currentNoteIndex = 0;
+
+    const happyBirthdayMelody = [
+        [261.63,0.35,0.05],[261.63,0.15,0.05],[293.66,0.5,0.05],[261.63,0.5,0.05],[349.23,0.5,0.05],[329.63,1.0,0.1],
+        [261.63,0.35,0.05],[261.63,0.15,0.05],[293.66,0.5,0.05],[261.63,0.5,0.05],[392.00,0.5,0.05],[349.23,1.0,0.1],
+        [261.63,0.35,0.05],[261.63,0.15,0.05],[523.25,0.5,0.05],[440.00,0.5,0.05],[349.23,0.5,0.05],[329.63,0.5,0.05],[293.66,1.0,0.1],
+        [466.16,0.35,0.05],[466.16,0.15,0.05],[440.00,0.5,0.05],[349.23,0.5,0.05],[392.00,0.5,0.05],[349.23,1.2,0.3]
+    ];
+
+    function playSound(type) {
+        if (isMuted) return;
+        try {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const now = audioCtx.currentTime;
+            if (type === 'click') {
+                const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+                o.connect(g); g.connect(audioCtx.destination);
+                o.type = 'sine'; o.frequency.setValueAtTime(620, now); o.frequency.exponentialRampToValueAtTime(310, now+0.1);
+                g.gain.setValueAtTime(0.07, now); g.gain.linearRampToValueAtTime(0.001, now+0.1);
+                o.start(now); o.stop(now+0.12);
+            } else if (type === 'item') {
+                [523.25,659.25,783.99,1046.50].forEach((f,i) => {
+                    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+                    o.connect(g); g.connect(audioCtx.destination);
+                    o.type = 'triangle'; o.frequency.setValueAtTime(f, now+i*.07);
+                    g.gain.setValueAtTime(0.06, now+i*.07); g.gain.exponentialRampToValueAtTime(0.001, now+i*.07+0.25);
+                    o.start(now+i*.07); o.stop(now+i*.07+0.3);
+                });
+            } else if (type === 'fanfare') {
+                [523.25,659.25,783.99,987.77,1046.50].forEach((f,i) => {
+                    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+                    o.connect(g); g.connect(audioCtx.destination);
+                    o.type = 'sine'; o.frequency.setValueAtTime(f, now+i*.05);
+                    g.gain.setValueAtTime(0.05, now+i*.05); g.gain.exponentialRampToValueAtTime(0.001, now+i*.05+1.5);
+                    o.start(now+i*.05); o.stop(now+i*.05+1.8);
+                });
+            } else if (type === 'blow') {
+                const sz = audioCtx.sampleRate*0.3, buf = audioCtx.createBuffer(1,sz,audioCtx.sampleRate);
+                const d = buf.getChannelData(0);
+                for (let i=0;i<sz;i++) d[i]=Math.random()*2-1;
+                const ns = audioCtx.createBufferSource(); ns.buffer = buf;
+                const flt = audioCtx.createBiquadFilter(); flt.type='lowpass';
+                flt.frequency.setValueAtTime(600,now); flt.frequency.exponentialRampToValueAtTime(80,now+0.3);
+                const ng = audioCtx.createGain(); ng.gain.setValueAtTime(0.12,now); ng.gain.linearRampToValueAtTime(0.001,now+0.3);
+                ns.connect(flt); flt.connect(ng); ng.connect(audioCtx.destination);
+                ns.start(now); ns.stop(now+0.3);
+            } else if (type === 'rustle') {
+                const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+                o.connect(g); g.connect(audioCtx.destination);
+                o.type = 'triangle'; o.frequency.setValueAtTime(120,now); o.frequency.exponentialRampToValueAtTime(40,now+0.15);
+                g.gain.setValueAtTime(0.1,now); g.gain.linearRampToValueAtTime(0.001,now+0.15);
+                o.start(now); o.stop(now+0.16);
+            }
+        } catch(e) {}
+    }
+
+    function startMusic() {
+        if (isMuted || isMusicPlaying) return;
+        isMusicPlaying = true; currentNoteIndex = 0;
+        document.getElementById('music-btn').textContent = '🎵 BGM: ON';
+        document.getElementById('music-btn').setAttribute('aria-pressed','true');
+        function playNext() {
+            if (!isMusicPlaying) return;
+            const note = happyBirthdayMelody[currentNoteIndex];
+            const now = audioCtx.currentTime;
+            const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+            o.connect(g); g.connect(audioCtx.destination);
+            o.type = 'sine'; o.frequency.setValueAtTime(note[0],now);
+            g.gain.setValueAtTime(0,now); g.gain.linearRampToValueAtTime(0.03,now+0.02);
+            g.gain.exponentialRampToValueAtTime(0.0001,now+note[1]);
+            o.start(now); o.stop(now+note[1]);
+            currentNoteIndex = (currentNoteIndex+1) % happyBirthdayMelody.length;
+            bgmIntervalId = setTimeout(playNext, (note[1]+note[2])*1000);
+        }
+        playNext();
+    }
+
+    function stopMusic() {
+        isMusicPlaying = false;
+        if (bgmIntervalId) { clearTimeout(bgmIntervalId); bgmIntervalId = null; }
+        document.getElementById('music-btn').textContent = '🎵 BGM: OFF';
+        document.getElementById('music-btn').setAttribute('aria-pressed','false');
+    }
+
+    function toggleMusic() {
+        if (isMusicPlaying) { stopMusic(); } else {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            startMusic(); playSound('click');
+        }
+    }
+
+    function toggleMute() {
+        isMuted = !isMuted;
+        const btn = document.getElementById('mute-btn');
+        if (isMuted) {
+            btn.textContent = '🔇 SOUND: OFF'; btn.setAttribute('aria-pressed','true'); stopMusic();
+        } else {
+            btn.textContent = '🔊 SOUND: ON'; btn.setAttribute('aria-pressed','false'); playSound('click');
+        }
+    }
+
+    // ==========================================
+    // GAME STATE
+    // ==========================================
+    const state = {
+        playerName: 'Kay',
+        currentScene: 'title',
+        inventory: [],
+        unlocked: { shop: false, park: false, hideout: false },
+        searched: {
+            fridgeOpened: false, fridgeInsideChecked: false, mudChecked: false,
+            parkGrassRustleCount: 0, parkKeyFound: false, shopStrawberryChecked: false
+        },
+        aiNegotiationState: 'start',
+        decorations: { strawberries: 0, creams: 0, plateText: 'HAPPY BIRTHDAY' },
+        candlesLit: [true, true, true]
+    };
+
+    const SCENE_ORDER = ['title','fridge','map','shop','park','hideout','thiefRoom','decorating','celebration'];
+    function getProgress() {
+        const steps = { title:0, fridge:15, map:25, shop:40, park:55, hideout:65, thiefRoom:75, decorating:85, celebration:100 };
+        return steps[state.currentScene] ?? 0;
+    }
+
+    // ==========================================
+    // SVG FACTORY (Enhanced Illustrations)
+    // ==========================================
+    const SVG = {
+        title: () => `
+        <svg viewBox="0 0 400 340" class="scene-fade" style="width:100%;height:100%;padding:1rem;" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <radialGradient id="bg-grad" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#FAF8F5"/>
+                    <stop offset="100%" stop-color="#F0E8DF"/>
+                </radialGradient>
+                <linearGradient id="bow-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#F0EAE0"/>
+                    <stop offset="100%" stop-color="#E2D5C2"/>
+                </linearGradient>
+                <linearGradient id="box-grad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#D4A373"/>
+                    <stop offset="100%" stop-color="#C08850"/>
+                </linearGradient>
+                <filter id="shadow-drop">
+                    <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#7A5A3A" flood-opacity="0.18"/>
+                </filter>
+            </defs>
+            <rect width="400" height="340" rx="20" fill="url(#bg-grad)"/>
+            <!-- Decorative circles -->
+            <circle cx="60" cy="60" r="30" fill="#EBE4D8" opacity=".4"/>
+            <circle cx="350" cy="280" r="45" fill="#E6DFD3" opacity=".35"/>
+            <circle cx="350" cy="60" r="18" fill="#CCD5AE" opacity=".4"/>
+            <circle cx="55" cy="290" r="22" fill="#D4A373" opacity=".25"/>
+            <!-- Stars -->
+            <path d="M320 50 L323 58 L331 58 L325 63 L327 71 L320 66 L313 71 L315 63 L309 58 L317 58Z" fill="#D4A373" opacity=".6"/>
+            <path d="M75 250 L77 256 L83 256 L78 260 L80 266 L75 262 L70 266 L72 260 L67 256 L73 256Z" fill="#CCD5AE" opacity=".7"/>
+            <!-- Floating gift box group -->
+            <g class="floating" style="animation-duration:4.5s;" filter="url(#shadow-drop)">
+                <!-- Box body -->
+                <rect x="148" y="110" width="104" height="100" rx="14" fill="url(#box-grad)"/>
+                <!-- Box lid -->
+                <rect x="143" y="100" width="114" height="18" rx="8" fill="#C08850"/>
+                <!-- Ribbon vertical -->
+                <rect x="194" y="100" width="12" height="110" fill="url(#bow-grad)" rx="3"/>
+                <!-- Ribbon horizontal -->
+                <rect x="148" y="143" width="104" height="12" fill="url(#bow-grad)" rx="3"/>
+                <!-- Bow left petal -->
+                <ellipse cx="183" cy="98" rx="16" ry="10" fill="url(#bow-grad)" transform="rotate(-20 183 98)"/>
+                <!-- Bow right petal -->
+                <ellipse cx="217" cy="98" rx="16" ry="10" fill="url(#bow-grad)" transform="rotate(20 217 98)"/>
+                <!-- Bow knot -->
+                <circle cx="200" cy="100" r="7" fill="#E8DECE"/>
+                <!-- Box shine -->
+                <rect x="156" y="116" width="20" height="60" rx="4" fill="rgba(255,255,255,.15)"/>
+                <!-- Polka dots -->
+                <circle cx="240" cy="135" r="4" fill="rgba(255,255,255,.25)"/>
+                <circle cx="255" cy="158" r="3" fill="rgba(255,255,255,.2)"/>
+                <circle cx="240" cy="180" r="4" fill="rgba(255,255,255,.25)"/>
+            </g>
+            <!-- Small sparkle stars floating -->
+            <circle cx="138" cy="95" r="3" fill="#D4A373" opacity=".8"/>
+            <circle cx="268" cy="108" r="2.5" fill="#CCD5AE" opacity=".9"/>
+            <circle cx="135" cy="225" r="2" fill="#E27373" opacity=".6"/>
+            <!-- Bottom line decoration -->
+            <line x1="100" y1="275" x2="300" y2="275" stroke="#E6DFD3" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="200" cy="275" r="5" fill="#D4A373"/>
+            <circle cx="180" cy="275" r="2.5" fill="#D4A373" opacity=".5"/>
+            <circle cx="220" cy="275" r="2.5" fill="#D4A373" opacity=".5"/>
+        </svg>`,
+
+        fridge: () => {
+            const opened = state.searched.fridgeOpened;
+            return `
+        <svg viewBox="0 0 400 340" class="scene-fade" style="width:100%;height:100%;padding:.75rem;" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="fridge-grad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#EBE6DC"/>
+                    <stop offset="100%" stop-color="#D8D0C3"/>
+                </linearGradient>
+                <linearGradient id="fridge-open" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#E8EFF5"/>
+                    <stop offset="100%" stop-color="#D8E5EF"/>
+                </linearGradient>
+                <filter id="inner-shadow">
+                    <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="#7A6050" flood-opacity=".1"/>
+                </filter>
+            </defs>
+            <!-- Kitchen wall -->
+            <rect width="400" height="340" rx="18" fill="#FAF8F5"/>
+            <!-- Wall tiles hint -->
+            <rect x="0" y="0" width="400" height="60" rx="18" fill="#F5F0E8" opacity=".6"/>
+            <line x1="0" y1="60" x2="400" y2="60" stroke="#EBE4D8" stroke-width="1"/>
+
+            ${opened ? `
+            <!-- Open fridge -->
+            <!-- Fridge shell -->
+            <rect x="105" y="35" width="190" height="265" rx="14" fill="url(#fridge-open)" stroke="#85705D" stroke-width="3.5"/>
+            <!-- Inner shadow -->
+            <rect x="112" y="42" width="175" height="251" rx="10" fill="rgba(200,220,240,.2)"/>
+            <!-- Shelves -->
+            <rect x="112" y="115" width="175" height="4" rx="2" fill="#96A8B8" opacity=".5"/>
+            <rect x="112" y="185" width="175" height="4" rx="2" fill="#96A8B8" opacity=".5"/>
+            <!-- CAKE MISSING slot -->
+            <rect x="135" y="125" width="130" height="52" rx="6" stroke="#85705D" stroke-width="2" stroke-dasharray="6 4" fill="rgba(212,163,115,.06)"/>
+            <text x="200" y="150" fill="#85705D" font-size="10" font-weight="bold" text-anchor="middle" opacity=".55">🎂 CAKE MISSING</text>
+            <text x="200" y="165" fill="#85705D" font-size="7" text-anchor="middle" opacity=".4">ケーキが消えた…</text>
+            <!-- Fridge items -->
+            <rect x="122" y="54" width="35" height="50" rx="5" fill="#CDE0C0" stroke="#85705D" stroke-width="1.5"/>
+            <text x="139" y="85" font-size="16" text-anchor="middle">🥛</text>
+            <rect x="167" y="58" width="28" height="45" rx="5" fill="#F5DEB3" stroke="#85705D" stroke-width="1.5"/>
+            <text x="181" y="87" font-size="14" text-anchor="middle">🧀</text>
+            <!-- Receipt -->
+            ${!hasItem('雑貨屋のレシート') ? `
+            <g class="interactive-el" onclick="clickSceneElement('receipt')">
+                <rect x="130" y="205" width="40" height="24" rx="3" fill="white" stroke="#85705D" stroke-width="2" transform="rotate(-12 130 205)"/>
+                <line x1="136" y1="210" x2="160" y2="205" stroke="#85705D" stroke-width="1"/>
+                <line x1="138" y1="217" x2="158" y2="213" stroke="#85705D" stroke-width="1"/>
+                <line x1="140" y1="224" x2="155" y2="221" stroke="#85705D" stroke-width="1"/>
+                <circle cx="171" cy="209" r="9" fill="rgba(212,163,115,.25)" stroke="rgba(212,163,115,.5)" stroke-width="1.5"/>
+                <text x="171" y="213" font-size="10" text-anchor="middle">!</text>
+            </g>` : ''}
+            <!-- Open door -->
+            <rect x="294" y="44" width="58" height="248" rx="8" fill="url(#fridge-grad)" stroke="#85705D" stroke-width="3.5"/>
+            <line x1="294" y1="130" x2="352" y2="130" stroke="#85705D" stroke-width="1.5" opacity=".4"/>
+            <circle cx="300" cy="172" r="4" fill="#85705D" opacity=".5"/>
+            ` : `
+            <!-- Closed fridge -->
+            <g class="interactive-el" onclick="clickSceneElement('open_fridge')">
+                <!-- Drop shadow -->
+                <rect x="126" y="40" width="150" height="268" rx="14" fill="rgba(133,112,93,.12)" transform="translate(4,4)"/>
+                <!-- Fridge body -->
+                <rect x="126" y="40" width="150" height="268" rx="14" fill="url(#fridge-grad)" stroke="#85705D" stroke-width="3.5"/>
+                <!-- Fridge divider -->
+                <line x1="130" y1="140" x2="272" y2="140" stroke="#85705D" stroke-width="2.5"/>
+                <!-- Handle top -->
+                <rect x="142" y="72" width="12" height="46" rx="5" fill="#85705D"/>
+                <!-- Handle bottom -->
+                <rect x="142" y="158" width="12" height="70" rx="5" fill="#85705D"/>
+                <!-- Tap hint -->
+                <circle cx="245" cy="185" r="18" fill="rgba(212,163,115,.15)" stroke="rgba(212,163,115,.4)" stroke-width="1.5" stroke-dasharray="4 3"/>
+                <text x="245" y="191" font-size="13" text-anchor="middle">👆</text>
+            </g>`}
+
+            <!-- Floor mud tracks -->
+            ${!hasItem('泥の跡') ? `
+            <g class="interactive-el" onclick="clickSceneElement('mud')">
+                <ellipse cx="175" cy="310" rx="11" ry="5" fill="#A39281" opacity=".65"/>
+                <ellipse cx="200" cy="320" rx="13" ry="5.5" fill="#A39281" opacity=".6"/>
+                <ellipse cx="228" cy="316" rx="9" ry="4" fill="#A39281" opacity=".45"/>
+                <circle cx="215" cy="322" r="2.5" fill="#8B7060" opacity=".5"/>
+                <text x="175" y="300" fill="#8B7060" font-size="8" font-weight="bold">👣 泥の跡…?</text>
+                <circle cx="250" cy="305" r="10" fill="rgba(163,146,129,.15)" stroke="rgba(163,146,129,.4)" stroke-width="1.5" stroke-dasharray="3 2"/>
+                <text x="250" y="309" font-size="9" text-anchor="middle">!</text>
+            </g>` : ''}
+        </svg>`;
+        },
+
+        shop: () => `
+        <svg viewBox="0 0 400 340" class="scene-fade" style="width:100%;height:100%;padding:.75rem;" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="shop-roof" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#D4A373"/>
+                    <stop offset="100%" stop-color="#B8864E"/>
+                </linearGradient>
+                <linearGradient id="shop-wall" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#FDFAF6"/>
+                    <stop offset="100%" stop-color="#F2EBE0"/>
+                </linearGradient>
+            </defs>
+            <rect width="400" height="340" rx="18" fill="#F5EFE8"/>
+            <!-- Sky -->
+            <rect x="0" y="0" width="400" height="110" rx="18" fill="#EAE4DC" opacity=".5"/>
+            <!-- Roof awning -->
+            <path d="M70 55 L330 55 L310 90 L90 90 Z" fill="url(#shop-roof)"/>
+            <!-- Awning scallops -->
+            <path d="M90 90 Q100 100 110 90 Q120 100 130 90 Q140 100 150 90 Q160 100 170 90 Q180 100 190 90 Q200 100 210 90 Q220 100 230 90 Q240 100 250 90 Q260 100 270 90 Q280 100 290 90 Q300 100 310 90" stroke="#C08850" stroke-width="2.5" fill="none"/>
+            <!-- Sign board -->
+            <rect x="130" y="20" width="140" height="32" rx="8" fill="#5E4E42"/>
+            <text x="200" y="41" fill="#FAF8F5" font-size="11" font-weight="bold" text-anchor="middle" font-family="'Noto Sans JP',sans-serif">🍓 雑貨屋さん</text>
+            <!-- Shop body -->
+            <rect x="85" y="90" width="230" height="190" fill="url(#shop-wall)" stroke="#85705D" stroke-width="3.5" rx="4"/>
+            <!-- Window shelf -->
+            <rect x="95" y="135" width="210" height="80" rx="4" fill="rgba(200,190,175,.2)" stroke="#85705D" stroke-width="2"/>
+            <line x1="95" y1="175" x2="305" y2="175" stroke="#85705D" stroke-width="1.5" opacity=".4"/>
+            <!-- Strawberry display -->
+            ${!hasItem('極上イチゴ') ? `
+            <g class="interactive-el" onclick="clickSceneElement('strawberry')">
+                <rect x="108" y="142" width="55" height="45" rx="6" fill="#FFF5F5" stroke="#E27373" stroke-width="2"/>
+                <circle cx="123" cy="158" r="7" fill="#E27373"/>
+                <circle cx="123" cy="158" r="2.5" fill="rgba(255,255,255,.4)"/>
+                <path d="M121 152 L123 149 L125 152" stroke="#5A8A40" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+                <circle cx="140" cy="165" r="6" fill="#D45050"/>
+                <circle cx="155" cy="157" r="7" fill="#E27373"/>
+                <circle cx="155" cy="157" r="2.5" fill="rgba(255,255,255,.4)"/>
+                <path d="M153 151 L155 148 L157 151" stroke="#5A8A40" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+                <text x="135" y="130" fill="#E27373" font-size="8" font-weight="bold" text-anchor="middle">✨ 極上いちご</text>
+                <!-- Tap hint -->
+                <circle cx="155" cy="178" r="9" fill="rgba(226,115,115,.15)" stroke="rgba(226,115,115,.4)" stroke-width="1.5" stroke-dasharray="3 2"/>
+                <text x="155" y="182" font-size="9" text-anchor="middle">!</text>
+            </g>` : `
+            <rect x="108" y="152" width="55" height="25" rx="6" fill="#EBE4D8" stroke="#85705D" stroke-width="1.5" stroke-dasharray="3 3" opacity=".5"/>`}
+            <!-- Jar display -->
+            <rect x="240" y="142" width="42" height="45" rx="8" fill="rgba(200,220,230,.4)" stroke="#85705D" stroke-width="2"/>
+            <rect x="248" y="148" width="26" height="32" rx="5" fill="rgba(180,210,220,.5)"/>
+            <circle cx="261" cy="164" r="8" fill="#CCD5AE" opacity=".7"/>
+            <text x="261" y="200" fill="#85705D" font-size="7" text-anchor="middle">ハチミツ</text>
+            <!-- Shopkeeper -->
+            <g>
+                <!-- Body -->
+                <rect x="168" y="225" width="64" height="55" rx="12" fill="#D4A373" opacity=".8"/>
+                <!-- Apron -->
+                <rect x="178" y="225" width="44" height="55" rx="8" fill="rgba(255,255,255,.5)"/>
+                <!-- Head -->
+                <circle cx="200" cy="215" r="28" fill="#EBE4D8" stroke="#85705D" stroke-width="3"/>
+                <!-- Eyes -->
+                <circle cx="192" cy="212" r="5" fill="white" stroke="#85705D" stroke-width="2"/>
+                <circle cx="208" cy="212" r="5" fill="white" stroke="#85705D" stroke-width="2"/>
+                <circle cx="193" cy="213" r="2.5" fill="#3D2D20"/>
+                <circle cx="209" cy="213" r="2.5" fill="#3D2D20"/>
+                <!-- Smile -->
+                <path d="M192 222 Q200 228 208 222" stroke="#85705D" stroke-width="2" fill="none" stroke-linecap="round"/>
+                <!-- Hat -->
+                <rect x="178" y="188" width="44" height="14" rx="4" fill="#85705D"/>
+                <rect x="172" y="196" width="56" height="6" rx="3" fill="#85705D"/>
+            </g>
+        </svg>`,
+
+        park: () => {
+            const rustleCount = state.searched.parkGrassRustleCount;
+            const shrinkX = Math.min(rustleCount * 15, 60);
+            return `
+        <svg viewBox="0 0 400 340" class="scene-fade" style="width:100%;height:100%;padding:.75rem;" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <radialGradient id="sky-grad" cx="50%" cy="0%" r="80%">
+                    <stop offset="0%" stop-color="#DDE8D0"/>
+                    <stop offset="100%" stop-color="#F0EDE5"/>
+                </radialGradient>
+                <linearGradient id="tree-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#B8CE98"/>
+                    <stop offset="100%" stop-color="#95B075"/>
+                </linearGradient>
+                <linearGradient id="grass-main" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#D2E6BA"/>
+                    <stop offset="100%" stop-color="#B8CE98"/>
+                </linearGradient>
+            </defs>
+            <!-- Sky -->
+            <rect width="400" height="340" rx="18" fill="url(#sky-grad)"/>
+            <!-- Ground -->
+            <rect x="0" y="260" width="400" height="80" rx="0" fill="#CDD9B0" opacity=".5"/>
+            <!-- Clouds -->
+            <ellipse cx="300" cy="45" rx="40" ry="18" fill="white" opacity=".5"/>
+            <ellipse cx="330" cy="40" rx="28" ry="14" fill="white" opacity=".4"/>
+            <ellipse cx="80" cy="55" rx="32" ry="14" fill="white" opacity=".4"/>
+            <!-- Tree -->
+            <rect x="115" y="165" width="20" height="70" rx="5" fill="#8B6E50"/>
+            <!-- Tree shadow -->
+            <ellipse cx="125" cy="232" rx="28" ry="6" fill="rgba(0,0,0,.08)"/>
+            <!-- Tree canopy layers -->
+            <ellipse cx="125" cy="145" rx="55" ry="48" fill="url(#tree-grad)"/>
+            <ellipse cx="125" cy="125" rx="45" ry="40" fill="#C5DBA0"/>
+            <ellipse cx="125" cy="110" rx="32" ry="28" fill="#D0E8B0"/>
+            <!-- Bench -->
+            <rect x="155" y="215" width="160" height="14" rx="6" fill="#E8DCC8" stroke="#85705D" stroke-width="2.5"/>
+            <rect x="155" y="205" width="160" height="10" rx="4" fill="#D4C4A8" stroke="#85705D" stroke-width="2"/>
+            <line x1="175" y1="229" x2="175" y2="260" stroke="#85705D" stroke-width="5" stroke-linecap="round"/>
+            <line x1="295" y1="229" x2="295" y2="260" stroke="#85705D" stroke-width="5" stroke-linecap="round"/>
+            <!-- Bench feet -->
+            <line x1="170" y1="258" x2="185" y2="258" stroke="#85705D" stroke-width="4" stroke-linecap="round"/>
+            <line x1="290" y1="258" x2="305" y2="258" stroke="#85705D" stroke-width="4" stroke-linecap="round"/>
+            <!-- Bushes / grass clumps -->
+            ${shrinkX < 60 ? `
+            <g class="interactive-el" onclick="clickSceneElement('grass')">
+                <!-- Left bush -->
+                <ellipse cx="${185 - shrinkX/2}" cy="256" rx="${55 - shrinkX}" ry="30" fill="url(#grass-main)" stroke="#85705D" stroke-width="2"/>
+                <ellipse cx="${185 - shrinkX/2}" cy="244" rx="${45 - shrinkX*0.8}" ry="20" fill="#C8E0A8"/>
+                <!-- Right bush -->
+                <ellipse cx="${248 + shrinkX/2}" cy="258" rx="${50 - shrinkX}" ry="28" fill="#9FB88D" stroke="#85705D" stroke-width="2"/>
+                <ellipse cx="${248 + shrinkX/2}" cy="247" rx="${38 - shrinkX*0.8}" ry="18" fill="#B0CD8E"/>
+                <!-- Tap hint -->
+                <text x="218" y="278" fill="#5A7A48" font-size="8" font-weight="bold" text-anchor="middle">🌿 茂みをかき分ける</text>
+            </g>` : ''}
+            <!-- Hidden key -->
+            ${rustleCount >= 3 && !hasItem('アジトの鍵') ? `
+            <g class="interactive-el floating" onclick="clickSceneElement('key')" style="animation-duration:2.5s;">
+                <!-- Glow ring -->
+                <circle cx="215" cy="240" r="20" fill="rgba(212,163,115,.2)" stroke="rgba(212,163,115,.5)" stroke-width="1.5" stroke-dasharray="4 3"/>
+                <!-- Key head -->
+                <circle cx="215" cy="230" r="9" stroke="#D4A373" stroke-width="3.5" fill="none"/>
+                <circle cx="215" cy="230" r="4" fill="#D4A373"/>
+                <!-- Key shaft -->
+                <line x1="215" y1="239" x2="215" y2="258" stroke="#D4A373" stroke-width="3.5" stroke-linecap="round"/>
+                <!-- Key teeth -->
+                <line x1="215" y1="246" x2="222" y2="246" stroke="#D4A373" stroke-width="2.5" stroke-linecap="round"/>
+                <line x1="215" y1="252" x2="221" y2="252" stroke="#D4A373" stroke-width="2.5" stroke-linecap="round"/>
+                <text x="215" y="272" fill="#B8903C" font-size="7" font-weight="bold" text-anchor="middle">✨ 鍵を発見！</text>
+            </g>` : ''}
+            <!-- Flower decorations -->
+            <circle cx="350" cy="270" r="6" fill="#E27373" opacity=".6"/>
+            <circle cx="360" cy="265" r="4" fill="#D4A373" opacity=".6"/>
+            <circle cx="340" cy="275" r="4" fill="#CCD5AE" opacity=".8"/>
+            <circle cx="50" cy="275" r="5" fill="#E27373" opacity=".5"/>
+        </svg>`;
+        },
+
+        hideout: () => `
+        <svg viewBox="0 0 400 340" class="scene-fade" style="width:100%;height:100%;padding:.75rem;" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="wall-grad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#2D2520"/>
+                    <stop offset="100%" stop-color="#1A1410"/>
+                </linearGradient>
+                <linearGradient id="door-grad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#6B5035"/>
+                    <stop offset="100%" stop-color="#4A3520"/>
+                </linearGradient>
+                <radialGradient id="key-glow" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="rgba(212,163,115,.5)"/>
+                    <stop offset="100%" stop-color="rgba(212,163,115,0)"/>
+                </radialGradient>
+            </defs>
+            <!-- Dark alley background -->
+            <rect width="400" height="340" rx="18" fill="#1E1A16"/>
+            <!-- Brick wall texture (simplified) -->
+            <rect x="0" y="0" width="400" height="340" rx="18" fill="#252019" opacity=".8"/>
+            <!-- Wall detail lines -->
+            <line x1="80" y1="80" x2="80" y2="280" stroke="#2D2520" stroke-width="2"/>
+            <line x1="320" y1="80" x2="320" y2="280" stroke="#2D2520" stroke-width="2"/>
+            <!-- Ground -->
+            <rect x="0" y="295" width="400" height="45" fill="#1A1510" rx="0"/>
+            <!-- Puddle reflection -->
+            <ellipse cx="200" cy="310" rx="60" ry="10" fill="rgba(212,163,115,.08)"/>
+            <!-- Fog/atmosphere -->
+            <rect x="0" y="0" width="400" height="340" rx="18" fill="rgba(30,26,22,.2)"/>
+            <!-- Door frame -->
+            <rect x="135" y="48" width="130" height="250" rx="8" fill="#1A1510" stroke="#8B7050" stroke-width="4"/>
+            <!-- Door -->
+            <rect x="142" y="55" width="116" height="236" rx="6" fill="url(#door-grad)"/>
+            <!-- Door panel details -->
+            <rect x="152" y="70" width="96" height="88" rx="6" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.08)" stroke-width="1.5"/>
+            <rect x="152" y="170" width="96" height="108" rx="6" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.08)" stroke-width="1.5"/>
+            <!-- Door center split -->
+            <line x1="200" y1="58" x2="200" y2="290" stroke="rgba(0,0,0,.3)" stroke-width="2"/>
+            <!-- Keyhole -->
+            <circle cx="248" cy="175" r="14" fill="#1A1510" stroke="#8B7050" stroke-width="2.5"/>
+            <circle cx="248" cy="172" r="5" fill="#2A2018"/>
+            <path d="M244 177 L248 188 L252 177" fill="#2A2018"/>
+            <!-- Keyhole glow if has key -->
+            ${hasItem('アジトの鍵') ? `
+            <circle cx="248" cy="175" r="22" fill="url(#key-glow)"/>
+            <circle cx="248" cy="175" r="16" stroke="rgba(212,163,115,.6)" stroke-width="1.5" stroke-dasharray="4 3" fill="none">
+                <animateTransform attributeName="transform" type="rotate" values="0 248 175;360 248 175" dur="4s" repeatCount="indefinite"/>
+            </circle>` : ''}
+            <!-- Light from gap -->
+            <path d="M198 58 L202 58 L204 290 L196 290Z" fill="rgba(255,220,150,.04)"/>
+            <!-- Muddy footprints -->
+            <ellipse cx="170" cy="310" rx="8" ry="3.5" fill="#3D3020" opacity=".7"/>
+            <ellipse cx="195" cy="305" rx="7" ry="3" fill="#3D3020" opacity=".6"/>
+            <ellipse cx="218" cy="308" rx="6" ry="2.5" fill="#3D3020" opacity=".5"/>
+            <!-- Lamp -->
+            <line x1="80" y1="60" x2="80" y2="130" stroke="#5A4A3A" stroke-width="4"/>
+            <ellipse cx="80" cy="135" rx="12" ry="8" fill="#8B7050"/>
+            <ellipse cx="80" cy="132" rx="8" ry="5" fill="rgba(255,220,100,.4)"/>
+            <!-- Lamp light -->
+            <path d="M60 140 L100 140 L115 200 L45 200Z" fill="rgba(255,220,100,.05)"/>
+        </svg>`,
+
+        thiefRoom: () => `
+        <svg viewBox="0 0 400 340" class="scene-fade" style="width:100%;height:100%;padding:.75rem;" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="cake-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#FFFDF8"/>
+                    <stop offset="100%" stop-color="#F8F0E8"/>
+                </linearGradient>
+                <linearGradient id="room-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#2D2520"/>
+                    <stop offset="100%" stop-color="#1E1A16"/>
+                </linearGradient>
+            </defs>
+            <!-- Room -->
+            <rect width="400" height="340" rx="18" fill="url(#room-grad)"/>
+            <!-- Back wall lighter -->
+            <rect x="60" y="50" width="280" height="180" rx="12" fill="#302820" opacity=".5"/>
+            <!-- Table -->
+            <rect x="85" y="215" width="230" height="75" rx="8" fill="#5A4030" stroke="#8B6040" stroke-width="2.5"/>
+            <rect x="85" y="215" width="230" height="12" rx="6" fill="#6B5040"/>
+            <line x1="110" y1="290" x2="110" y2="325" stroke="#5A4030" stroke-width="6" stroke-linecap="round"/>
+            <line x1="295" y1="290" x2="295" y2="325" stroke="#5A4030" stroke-width="6" stroke-linecap="round"/>
+            <!-- Cake on table -->
+            <g class="floating" style="animation-duration:3.5s;">
+                <!-- Cake plate -->
+                <ellipse cx="200" cy="222" rx="70" ry="10" fill="rgba(255,255,255,.1)"/>
+                <!-- Cake bottom layer -->
+                <rect x="140" y="175" width="120" height="48" rx="8" fill="url(#cake-grad)" stroke="#D4A373" stroke-width="2.5"/>
+                <!-- Pink stripe -->
+                <rect x="143" y="195" width="114" height="12" rx="3" fill="#F8C0C0" opacity=".5"/>
+                <!-- Cream top -->
+                <path d="M143 175 Q155 162 168 175 Q180 162 193 175 Q205 162 218 175 Q230 162 243 175 Q255 162 257 175" stroke="#FAF8F5" stroke-width="4" fill="none" stroke-linecap="round"/>
+                <!-- Strawberries on cake -->
+                <circle cx="160" cy="168" r="8" fill="#E27373"/><circle cx="160" cy="168" r="2.5" fill="rgba(255,255,255,.4)"/><path d="M158 162 L160 159 L162 162" stroke="#5A8A40" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+                <circle cx="200" cy="165" r="8" fill="#D45050"/><circle cx="200" cy="165" r="2.5" fill="rgba(255,255,255,.4)"/><path d="M198 159 L200 156 L202 159" stroke="#5A8A40" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+                <circle cx="240" cy="168" r="8" fill="#E27373"/><circle cx="240" cy="168" r="2.5" fill="rgba(255,255,255,.4)"/><path d="M238 162 L240 159 L242 162" stroke="#5A8A40" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+                <!-- Candles -->
+                <rect x="174" y="150" width="7" height="25" rx="3" fill="#CCD5AE"/>
+                <ellipse cx="177" cy="148" rx="5" ry="6" fill="#FF9A5A" class="flame" style="animation-duration:1.3s;"/>
+                <rect x="219" y="150" width="7" height="25" rx="3" fill="#D4A373"/>
+                <ellipse cx="222" cy="148" rx="5" ry="6" fill="#FF7070" class="flame" style="animation-duration:.9s;"/>
+            </g>
+            <!-- Labi the Rabbit -->
+            <g transform="translate(40, 30)">
+                <!-- Ears -->
+                <ellipse cx="218" cy="132" rx="10" ry="30" fill="#FAF8F5" stroke="#85705D" stroke-width="2.5" transform="rotate(-15 218 132)"/>
+                <ellipse cx="250" cy="132" rx="10" ry="30" fill="#FAF8F5" stroke="#85705D" stroke-width="2.5" transform="rotate(15 250 132)"/>
+                <!-- Inner ears pink -->
+                <ellipse cx="215" cy="132" rx="5" ry="20" fill="#F5C0C0" opacity=".6" transform="rotate(-15 215 132)"/>
+                <ellipse cx="252" cy="132" rx="5" ry="20" fill="#F5C0C0" opacity=".6" transform="rotate(15 252 132)"/>
+                <!-- Head -->
+                <circle cx="234" cy="172" r="30" fill="#FAF8F5" stroke="#85705D" stroke-width="3"/>
+                <!-- Blush marks -->
+                <circle cx="216" cy="180" r="7" fill="#F5A0A0" opacity=".4"/>
+                <circle cx="252" cy="180" r="7" fill="#F5A0A0" opacity=".4"/>
+                <!-- Eyes (sad) -->
+                <path d="M221 168 Q226 164 231 168" stroke="#85705D" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                <path d="M237 168 Q242 164 247 168" stroke="#85705D" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                <!-- Tears -->
+                <circle cx="222" cy="174" r="2" fill="rgba(100,150,220,.5)"/>
+                <circle cx="247" cy="174" r="2" fill="rgba(100,150,220,.5)"/>
+                <!-- Nose -->
+                <polygon points="232,175 237,175 234.5,179" fill="#85705D"/>
+                <!-- Mouth (sad curve) -->
+                <path d="M228 183 Q234 179 240 183" stroke="#85705D" stroke-width="2" fill="none" stroke-linecap="round"/>
+                <!-- Body -->
+                <ellipse cx="234" cy="210" rx="26" ry="22" fill="#FAF8F5" stroke="#85705D" stroke-width="2.5"/>
+            </g>
+        </svg>`,
+
+        decorating: () => {
+            let sbSvg = '';
+            for (let i = 0; i < state.decorations.strawberries; i++) {
+                const x = 145 + i * 26;
+                sbSvg += `<g class="scene-fade">
+                    <circle cx="${x}" cy="153" r="9" fill="#E27373" stroke="#C05050" stroke-width="1.5"/>
+                    <circle cx="${x-2}" cy="150" r="3" fill="rgba(255,255,255,.45)"/>
+                    <path d="${x-2} ${147} L${x} ${143} L${x+2} ${147}" stroke="#5A8A40" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+                </g>`;
+            }
+            let crSvg = '';
+            for (let i = 0; i < state.decorations.creams; i++) {
+                const x = 125 + i * 22;
+                crSvg += `<path class="scene-fade" d="M${x} 205 Q${x+8} 191 ${x+16} 205 Q${x+18} 208 ${x+16} 210 L${x} 210 Q${x-2} 208 ${x} 205 Z" fill="#FAF8F5" stroke="#D4C0A0" stroke-width="1.5"/>`;
+            }
+            return `
+        <svg viewBox="0 0 400 340" class="scene-fade" style="width:100%;height:100%;padding:.75rem;" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="dec-bg" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#FEF9F4"/>
+                    <stop offset="100%" stop-color="#F5EDE2"/>
+                </linearGradient>
+                <linearGradient id="cake-body" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#FFFCF8"/>
+                    <stop offset="100%" stop-color="#F5EDE2"/>
+                </linearGradient>
+                <filter id="cake-shadow">
+                    <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#C4825A" flood-opacity=".15"/>
+                </filter>
+            </defs>
+            <rect width="400" height="340" rx="18" fill="url(#dec-bg)"/>
+            <!-- Workshop decorations -->
+            <text x="50" y="80" font-size="20" opacity=".25">🎀</text>
+            <text x="330" y="80" font-size="20" opacity=".25">🎊</text>
+            <text x="50" y="290" font-size="16" opacity=".2">✨</text>
+            <text x="340" y="290" font-size="16" opacity=".2">🌟</text>
+            <!-- Cake base plate -->
+            <ellipse cx="200" cy="252" rx="90" ry="12" fill="#E8C898" opacity=".5" filter="url(#cake-shadow)"/>
+            <rect x="115" y="240" width="170" height="12" rx="6" fill="#D4A373"/>
+            <!-- Cake body -->
+            <g class="floating" filter="url(#cake-shadow)">
+                <rect x="115" y="160" width="170" height="80" rx="12" fill="url(#cake-body)" stroke="#D4A373" stroke-width="3"/>
+                <!-- Cake layer line -->
+                <rect x="115" y="200" width="170" height="3" fill="rgba(212,163,115,.2)"/>
+                <!-- Cream swirls on top edge -->
+                ${crSvg}
+                <!-- Strawberries -->
+                ${sbSvg}
+                <!-- Choco plate -->
+                <rect x="130" y="178" width="140" height="32" rx="8" fill="#4A3A2A" stroke="#6B5040" stroke-width="1.5"/>
+                <text x="200" y="198" fill="#FAF8F5" font-size="9.5" font-weight="bold" text-anchor="middle" font-family="'Noto Sans JP', sans-serif" letter-spacing="1">
+                    ${state.decorations.plateText.toUpperCase()}
+                </text>
+                <!-- Shine on choco plate -->
+                <rect x="135" y="181" width="20" height="26" rx="4" fill="rgba(255,255,255,.07)"/>
+            </g>
+            <!-- Strawberry add button inside SVG -->
+            <g class="interactive-el" onclick="clickSceneElement('add_strawberry')" transform="translate(38,278)">
+                <rect width="148" height="36" rx="10" fill="#E27373" stroke="#C05050" stroke-width="1.5"/>
+                <rect width="148" height="36" rx="10" fill="rgba(255,255,255,.12)"/>
+                <text x="74" y="22" fill="white" font-size="9.5" font-weight="bold" text-anchor="middle">🍓 イチゴ (${state.decorations.strawberries}/5)</text>
+            </g>
+            <g class="interactive-el" onclick="clickSceneElement('add_cream')" transform="translate(215,278)">
+                <rect width="148" height="36" rx="10" fill="white" stroke="#D4C0A0" stroke-width="1.5"/>
+                <text x="74" y="22" fill="#85705D" font-size="9.5" font-weight="bold" text-anchor="middle">🧁 クリーム (${state.decorations.creams}/7)</text>
+            </g>
+        </svg>`;
+        },
+
+        celebration: () => {
+            let candlesSvg = '';
+            const cx = [162, 200, 238];
+            for (let i = 0; i < 3; i++) {
+                const x = cx[i];
+                const color = i % 2 === 0 ? '#CCD5AE' : '#D4A373';
+                candlesSvg += `
+                <g id="candle-${i}" class="interactive-el" onclick="clickSceneElement('candle_${i}')">
+                    <rect x="${x-4}" y="128" width="9" height="32" rx="4" fill="${color}" stroke="#85705D" stroke-width="1.5"/>
+                    ${state.candlesLit[i] ? `
+                    <ellipse cx="${x}" cy="123" rx="6" ry="8" class="flame" fill="#FF9A5A" id="flame-${i}" style="animation-duration:${.9 + i*.2}s;"/>
+                    <ellipse cx="${x}" cy="126" rx="3" ry="4" fill="#FFE060" opacity=".7" class="flame" style="animation-duration:${.7+i*.15}s;"/>
+                    ` : `<circle cx="${x}" cy="130" r="3" fill="#8B6050" opacity=".5"/>`}
+                </g>`;
+            }
+            let sbSvg = '';
+            for (let i = 0; i < state.decorations.strawberries; i++) {
+                const x = 148 + i * 24;
+                sbSvg += `<circle cx="${x}" cy="155" r="8" fill="#E27373" stroke="#C05050" stroke-width="1.5"/>`;
+            }
+            return `
+        <svg viewBox="0 0 400 340" class="scene-fade" style="width:100%;height:100%;padding:.75rem;" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="cel-bg" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#FFF8F0"/>
+                    <stop offset="100%" stop-color="#F5EDE0"/>
+                </linearGradient>
+                <radialGradient id="glow-cake" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="rgba(255,220,150,.25)"/>
+                    <stop offset="100%" stop-color="rgba(255,220,150,0)"/>
+                </radialGradient>
+                <filter id="cel-shadow">
+                    <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#C4825A" flood-opacity=".2"/>
+                </filter>
+            </defs>
+            <rect width="400" height="340" rx="18" fill="url(#cel-bg)"/>
+            <!-- Background confetti shapes -->
+            <circle cx="60" cy="75" r="10" fill="#CCD5AE" opacity=".6"/>
+            <circle cx="350" cy="100" r="15" fill="#EBE4D8" opacity=".7"/>
+            <polygon points="320,250 330,235 310,230" fill="#D4A373" opacity=".5"/>
+            <polygon points="75,240 85,225 65,220" fill="#E27373" opacity=".4"/>
+            <circle cx="360" cy="270" r="8" fill="#CCD5AE" opacity=".5"/>
+            <!-- Cake stand -->
+            <ellipse cx="200" cy="260" rx="95" ry="14" fill="#D4A373" opacity=".5"/>
+            <rect x="170" y="255" width="60" height="8" rx="4" fill="#C08850" opacity=".6"/>
+            <!-- Cake body -->
+            <g class="floating" filter="url(#cel-shadow)">
+                <!-- Glow -->
+                <circle cx="200" cy="190" r="90" fill="url(#glow-cake)"/>
+                <!-- Cake layers -->
+                <rect x="110" y="160" width="180" height="95" rx="12" fill="#FFFCF8" stroke="#D4A373" stroke-width="3.5"/>
+                <rect x="110" y="210" width="180" height="4" fill="rgba(212,163,115,.2)"/>
+                <!-- Cream border top -->
+                <path d="M113 160 Q120 148 128 160 Q136 148 144 160 Q152 148 160 160 Q168 148 176 160 Q184 148 192 160 Q200 148 208 160 Q216 148 224 160 Q232 148 240 160 Q248 148 256 160 Q264 148 272 160 Q280 148 287 160" stroke="#FAF8F5" stroke-width="5" fill="none" stroke-linecap="round"/>
+                <!-- Choco plate -->
+                <rect x="128" y="178" width="144" height="34" rx="8" fill="#4A3A2A" stroke="#6B5040" stroke-width="1.5"/>
+                <text x="200" y="199" fill="#FAF8F5" font-size="9" font-weight="bold" text-anchor="middle" font-family="'Noto Sans JP',sans-serif" letter-spacing="1">
+                    ${state.decorations.plateText.toUpperCase()}
+                </text>
+                <!-- Candles -->
+                ${candlesSvg}
+                <!-- Strawberries -->
+                ${sbSvg}
+            </g>
+            <!-- Labi with party hat (small, right side) -->
+            <g transform="translate(268, 178)" class="floating" style="animation-duration:5s;">
+                <!-- Ears -->
+                <ellipse cx="32" cy="14" rx="7" ry="20" fill="#FAF8F5" stroke="#85705D" stroke-width="2" transform="rotate(-10 32 14)"/>
+                <ellipse cx="54" cy="14" rx="7" ry="20" fill="#FAF8F5" stroke="#85705D" stroke-width="2" transform="rotate(10 54 14)"/>
+                <!-- Head -->
+                <circle cx="43" cy="44" r="22" fill="#FAF8F5" stroke="#85705D" stroke-width="2.5"/>
+                <!-- Eyes happy -->
+                <path d="M35 42 Q38 38 41 42" stroke="#85705D" stroke-width="2" fill="none" stroke-linecap="round"/>
+                <path d="M45 42 Q48 38 51 42" stroke="#85705D" stroke-width="2" fill="none" stroke-linecap="round"/>
+                <!-- Smile -->
+                <path d="M37 50 Q43 56 49 50" stroke="#85705D" stroke-width="2" fill="none" stroke-linecap="round"/>
+                <!-- Blush -->
+                <circle cx="33" cy="50" r="5" fill="#F5A0A0" opacity=".5"/>
+                <circle cx="53" cy="50" r="5" fill="#F5A0A0" opacity=".5"/>
+                <!-- Party hat -->
+                <polygon points="43,8 26,42 60,42" fill="#E27373" stroke="#C05050" stroke-width="1.5"/>
+                <polygon points="43,8 26,42 60,42" fill="url(#glow-cake)" opacity=".4"/>
+                <circle cx="43" cy="8" r="4" fill="#FFD700"/>
+                <!-- Hat polka dots -->
+                <circle cx="38" cy="28" r="2" fill="rgba(255,255,255,.5)"/>
+                <circle cx="49" cy="22" r="2" fill="rgba(255,255,255,.5)"/>
+                <!-- Cracker -->
+                <line x1="58" y1="50" x2="75" y2="35" stroke="#85705D" stroke-width="3" stroke-linecap="round"/>
+                <path d="M72 28 L80 32 L76 40 L68 36Z" fill="#D4A373"/>
+                <circle cx="80" cy="28" r="3" fill="#E27373"/>
+                <circle cx="76" cy="23" r="2" fill="#CCD5AE"/>
+            </g>
+        </svg>`;
+        }
+    };
+
+    // ==========================================
+    // GAME ENGINE
+    // ==========================================
+    const scenes = {
+        title: {
+            location: 'TITLE SCREEN',
+            text: '【バースデー・エージェント：特製ケーキ奪還作戦】\n\n極秘緊急ミッション発令！\n本日の誕生パーティー用特製ケーキが保管庫から消失した。\n\n主役【 Kay 】のために、エージェントよ今すぐ捜査に合流せよ！',
+            render() {
+                document.getElementById('game-header').classList.remove('visible');
+                document.getElementById('ai-input-panel').classList.remove('visible');
+                document.getElementById('ai-chat-box').classList.remove('visible');
+                document.getElementById('visual-area').innerHTML = SVG.title();
+                document.getElementById('action-panel').innerHTML = `
+                    <button onclick="startGame()" class="btn btn-primary">
+                        🕵️ MISSION START — Kay のケーキを奪還せよ！
+                    </button>`;
+            }
+        },
+
+        fridge: {
+            location: 'キッチン（事件現場）',
+            text() {
+                if (!state.searched.fridgeOpened) return 'キッチンの冷蔵庫の前だ。床には怪しい汚れがあり、冷蔵庫の中身も不自然だ。\nまずは【冷蔵庫】を直接タップして開けてみよう。';
+                if (!hasItem('雑貨屋のレシート') || !hasItem('泥の跡')) return '冷蔵庫を開放した。保管庫はすっかり空っぽだ。\n冷蔵庫の中に落ちている【紙切れ（レシート）】や、床に散らばる【泥の跡】をタップして徹底的に調査しよう。';
+                return 'すべての初期証拠の回収を完了した。これらを分析して追跡に移るべきだ。\n下部の「マップを開く」ボタンから捜査地点を確認せよ。';
+            },
+            render() {
+                showHeader();
+                document.getElementById('ai-input-panel').classList.remove('visible');
+                document.getElementById('ai-chat-box').classList.remove('visible');
+                document.getElementById('visual-area').innerHTML = SVG.fridge();
+                const btns = hasItem('雑貨屋のレシート') && hasItem('泥の跡')
+                    ? `<button onclick="goToMap()" class="btn btn-primary">📍 GPSマップを展開して追跡</button>`
+                    : `<button class="btn btn-disabled">⚠️ 証拠が不足しています（画像内をタップ）</button>`;
+                document.getElementById('action-panel').innerHTML = btns;
+            }
+        },
+
+        map: {
+            location: 'エージェント専用GPSマップ',
+            text: '取得した証拠から移動ルートを解析した。泥の跡から「公園」への足取りが、レシートから「雑貨屋」との接点が判明している。\n鍵を入手すれば「アジト」のロックを突破できるはずだ。',
+            render() {
+                showHeader();
+                document.getElementById('ai-input-panel').classList.remove('visible');
+                document.getElementById('ai-chat-box').classList.remove('visible');
+                const { shop, park, hideout } = state.unlocked;
+                document.getElementById('visual-area').innerHTML = `
+                <div style="padding:.75rem;width:100%;height:100%;display:flex;flex-direction:column;justify-content:space-between;">
+                    <div style="text-align:center;margin-bottom:.5rem;">
+                        <div style="font-size:.55rem;letter-spacing:.2em;text-transform:uppercase;color:var(--text-muted);font-weight:700;">TERRAIN TRACKING MAP</div>
+                        <div style="font-size:.75rem;font-weight:700;color:var(--accent-2);margin-top:.2rem;">追跡可能ポイント</div>
+                    </div>
+                    <div class="map-grid" style="flex:1;align-content:center;">
+                        <div class="map-node active-loc" onclick="changeScene('fridge')" role="button" tabindex="0" aria-label="キッチンへ移動">
+                            <span class="map-node-icon">🏡</span>
+                            <div class="map-node-name">キッチン</div>
+                            <div class="map-node-sub">事件発生現場</div>
+                        </div>
+                        <div class="map-node ${shop ? '' : 'locked'}" onclick="${shop ? "changeScene('shop')" : ''}" role="button" tabindex="${shop ? 0 : -1}" aria-label="${shop ? '雑貨屋へ移動' : 'ロック'}">
+                            <span class="map-node-icon">${shop ? '🏪' : '🔒'}</span>
+                            <div class="map-node-name">近所の雑貨屋</div>
+                            <div class="map-node-sub">${shop ? 'レシートの発行元' : '手がかりを求む'}</div>
+                        </div>
+                        <div class="map-node ${park ? '' : 'locked'}" onclick="${park ? "changeScene('park')" : ''}" role="button" tabindex="${park ? 0 : -1}" aria-label="${park ? '公園へ移動' : 'ロック'}">
+                            <span class="map-node-icon">${park ? '🌿' : '🔒'}</span>
+                            <div class="map-node-name">近くの公園</div>
+                            <div class="map-node-sub">${park ? '泥跡の軌跡先' : '手がかりを求む'}</div>
+                        </div>
+                        <div class="map-node ${hideout ? '' : 'locked'}" onclick="${hideout ? "changeScene('hideout')" : ''}" role="button" tabindex="${hideout ? 0 : -1}" aria-label="${hideout ? 'アジトへ移動' : 'ロック'}">
+                            <span class="map-node-icon">${hideout ? '🚪' : '🔒'}</span>
+                            <div class="map-node-name">秘密のアジト</div>
+                            <div class="map-node-sub">${hideout ? '鍵で突破せよ' : '鍵が必要'}</div>
+                        </div>
+                    </div>
+                </div>`;
+                document.getElementById('action-panel').innerHTML = '';
+            }
+        },
+
+        shop: {
+            location: '近所の雑貨屋',
+            text: '落ち着いた外観の雑貨屋。ショーウィンドウには地元名産の果物が並んでいる。店主に話しかけてみよう。\n\nまずは【輝くイチゴ】のケースをタップして確認しよう。',
+            render() {
+                showHeader();
+                document.getElementById('ai-input-panel').classList.remove('visible');
+                document.getElementById('ai-chat-box').classList.remove('visible');
+                document.getElementById('visual-area').innerHTML = SVG.shop();
+                document.getElementById('action-panel').innerHTML = `<button onclick="goToMap()" class="btn btn-secondary">📍 マップに戻る</button>`;
+            }
+        },
+
+        park: {
+            location: '近くの公園',
+            text() {
+                const c = state.searched.parkGrassRustleCount;
+                if (c === 0) return '公園の広場に着いた。ベンチの奥に怪しい茂みがある。\n【茂み】をタップしてかき分けてみよう。';
+                if (c < 3) return `茂みをかき分けた（${c}/3回）。もう少し奥まで調べよう。\n引き続き茂みをタップしてほしい。`;
+                if (!state.searched.parkKeyFound) return '茂みの奥から何かキラリと光るものが！\n【光る鍵】をタップして拾い上げよう！';
+                return '真鍮の鍵を手に入れた！これでアジトのドアを開けられそうだ。\nマップからアジトに向かおう。';
+            },
+            render() {
+                showHeader();
+                document.getElementById('ai-input-panel').classList.remove('visible');
+                document.getElementById('ai-chat-box').classList.remove('visible');
+                document.getElementById('visual-area').innerHTML = SVG.park();
+                let html = '';
+                if (state.searched.parkGrassRustleCount < 3) {
+                    html += `<button onclick="rustleGrass()" class="btn btn-sage">🌿 茂みを直接かき分ける</button>`;
+                } else if (!state.searched.parkKeyFound) {
+                    html += `<button onclick="clickSceneElement('key')" class="btn btn-primary" style="animation:itemFlash .8s var(--ease-bounce) both;">🔑 光る鍵を拾い上げる！</button>`;
+                }
+                html += `<button onclick="goToMap()" class="btn btn-secondary">📍 マップに戻る</button>`;
+                document.getElementById('action-panel').innerHTML = html;
+            }
+        },
+
+        hideout: {
+            location: '秘密のアジトの扉前',
+            text: '路地の奥深くに隠された、重厚感のあるオーク材のドア。\n公園で見つけた真鍮の鍵がジャストフィットしそうだ。鍵をキーホールに差し込もう。',
+            render() {
+                document.getElementById('ai-input-panel').classList.remove('visible');
+                document.getElementById('ai-chat-box').classList.remove('visible');
+                document.getElementById('visual-area').innerHTML = SVG.hideout();
+                const btns = hasItem('アジトの鍵')
+                    ? `<button onclick="unlockHideout()" class="btn btn-rose">🔑 鍵を使ってアジトへ突入！</button>`
+                    : `<button class="btn btn-disabled">⚠️ ドアを開けるための鍵が必要です</button>`;
+                document.getElementById('action-panel').innerHTML = btns + `<button onclick="goToMap()" class="btn btn-secondary">📍 マップに戻る</button>`;
+            }
+        },
+
+        thiefRoom: {
+            location: 'アジトの内部（対峙フェーズ）',
+            text: 'アジトに潜入すると、奪われた特製ケーキを守るように抱きかかえる、寂しがり屋のウサギの妖精「ラビ」がいた。\n\n「うぅ……ごめんなさい、ボク、誰もお誕生日を祝ってくれなくてすっごく寂しかったんだ……おいしそうなケーキを1回でお腹いっぱい食べてみたくて……」\n\n彼は怯えて震えている。説得チャット交渉を始めよう！',
+            render() {
+                document.getElementById('visual-area').innerHTML = SVG.thiefRoom();
+                document.getElementById('ai-chat-box').classList.add('visible');
+                document.getElementById('ai-input-panel').classList.add('visible');
+                initAiChat();
+                let html = '';
+                if (hasItem('極上イチゴ')) html += `<button onclick="useStrawberryOnLabi()" class="btn btn-rose">🍓 「極上イチゴ」をラビにプレゼントして誘う</button>`;
+                html += `<button onclick="forceReclaim()" class="btn btn-secondary">😠 「コラ！盗みはダメだ！」とケーキを取り上げる</button>`;
+                document.getElementById('action-panel').innerHTML = html;
+            }
+        },
+
+        decorating: {
+            location: 'デコレーション工房',
+            text() { return `ケーキは無傷で回収された！さらにラビも一緒にパーティーでお祝いすることに合意。\nさあ、仕上げとして主役の【 ${state.playerName} 】にふさわしい、最高のオリジナルケーキへDIYデコレーションしよう！\n\n「イチゴ」や「クリーム」をたっぷりのせて、華やかに仕上げてください。`; },
+            render() {
+                showHeader();
+                document.getElementById('ai-chat-box').classList.remove('visible');
+                document.getElementById('ai-input-panel').classList.remove('visible');
+                document.getElementById('visual-area').innerHTML = SVG.decorating();
+                document.getElementById('action-panel').innerHTML = `
+                    <div class="plate-input-wrap">
+                        <label class="plate-label" for="plate-text-input">チョコプレートのメッセージ</label>
+                        <input type="text" id="plate-text-input" class="plate-input" value="${state.decorations.plateText}" oninput="updatePlateText(this.value)">
+                    </div>
+                    <button onclick="finishDecorating()" class="btn btn-primary">🎉 デコレーション完成！パーティーを開始する！</button>`;
+            }
+        },
+
+        celebration: {
+            location: 'ハッピーバースデーパーティー！',
+            text() { return `✨🎉 MISSION COMPLETE !! 🎉✨\n\nお祝い特製ケーキを素晴らしいデコレーションで奪還することに成功した！\n新しい仲間となったウサギのラビも、お祝いクラッカーを持ってスタンバイ完了！\n\n【 ${state.playerName} 】、本当にお誕生日おめでとうございます！🎂✨\n\n（ケーキの上のロウソクをタップして、息を吹きかけて消してね！）`; },
+            render() {
+                document.getElementById('visual-area').innerHTML = SVG.celebration();
+                startConfetti();
+                document.getElementById('action-panel').innerHTML = `<button onclick="resetGame()" class="btn btn-secondary">🔄 もう一度最初から遊ぶ</button>`;
+            }
+        }
+    };
+
+    // ==========================================
+    // AI CHAT
+    // ==========================================
+    let chatHistory = [];
+
+    function initAiChat() {
+        const box = document.getElementById('ai-chat-box');
+        box.innerHTML = `<div class="chat-msg-labi"><span class="chat-name">ラビ:</span> うぅぅ…ごめんなさい、ボク怒られるのすごく怖いよぅ……。ボクだって誰かとお祝いしたかっただけんだもん……。</div>`;
+        chatHistory = [
+            { role:'user', parts:[{ text:'ゲームの状況：プレイヤー（ケーキ捜査官エージェント）が、寂しがりのウサギ妖精ラビ（あなた）のアジトを突き止めた。ラビは泣いて怯えている。穏和にケーキを返してもらい、仲間になるように対話する。' }] },
+            { role:'model', parts:[{ text:'うぅぅ…ごめんなさい、ボク怒られるのすごく怖いよぅ……。ボクだって誰かとお祝いしたかっただけんだもん……。' }] }
+        ];
+        scrollLogToBottom();
+    }
+
+    async function sendChatMessage() {
+        const input = document.getElementById('ai-user-text');
+        const message = input.value.trim();
+        if (!message) return;
+        input.value = '';
+        playSound('click');
+
+        const box = document.getElementById('ai-chat-box');
+        box.innerHTML += `<div class="chat-msg-player">${escapeHTML(message)}</div>`;
+        const loadId = 'load-' + Date.now();
+        box.innerHTML += `<div id="${loadId}" class="chat-loading">ラビが考え中…</div>`;
+        scrollLogToBottom();
+
+        const apiKey = '';
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        const systemPrompt = `あなたは誕生日ケーキをこっそり盗んでしまった、非常に寂しがり屋で繊細なウサギの妖精「ラビ」です。現在アジトでケーキを抱えて怯えています。プレイヤーがあなたを説得しようとしています。ラビのルール：一人称は「ボク」。おどおどした幼児のような可愛い口調（「〜だよぅ」「〜だもん」「うぅ…」など）で答えてください。本当は悪い子ではなく、寂しいからお腹いっぱいケーキを食べたかった。プレイヤーが「優しくしてくれる」「一緒に食べようと誘う」「怒らない」「友達になろう」などの優しいアプローチをすると大喜びして、ケーキを返して一緒にパーティーに参加することに同意します。同意した場合（説得が成功した場合）、会話テキストの最後に、必ず「[SUCCESS]」という特殊タグを1つ付加してください。プレイヤーが「警察を呼ぶ」「叱りつける」「威圧的」な場合、怯えて拒絶し、最後に必ず「[FAIL]」を付加してください。1回の応答は必ず短め（2〜3文、100文字以内）にまとめてください。`;
+
+        chatHistory.push({ role:'user', parts:[{ text: message }] });
+
+        try {
+            const res = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: chatHistory, systemInstruction: { parts: [{ text: systemPrompt }] } })
+            });
+            const data = await res.json();
+            const aiReply = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'うぅ、なんて言ったらいいか分からないよぅ……。';
+            document.getElementById(loadId)?.remove();
+
+            let reply = aiReply;
+            const isSuccess = reply.includes('[SUCCESS]');
+            const isFail = reply.includes('[FAIL]');
+            reply = reply.replace('[SUCCESS]','').replace('[FAIL]','').trim();
+
+            box.innerHTML += `<div class="chat-msg-labi"><span class="chat-name">ラビ:</span> ${escapeHTML(reply)}</div>`;
+            scrollLogToBottom();
+            chatHistory.push({ role:'model', parts:[{ text: aiReply }] });
+
+            if (isSuccess) { setTimeout(() => { playSound('fanfare'); changeScene('decorating','forward'); }, 1200); }
+        } catch(err) {
+            document.getElementById(loadId)?.remove();
+            let fallback = 'うぅ、ボクそんなに悪い子じゃないのにぃ……。';
+            let success = false;
+            if (/イチゴ|いちご|一緒|いいよ|友達|許す|おいで|やさしい|優しい|大好き|来て/.test(message)) {
+                fallback = 'えっ！？本当に！？一緒にお祝いしてもいいの……！？うわぁぁん、ありがとうぉ！ボク、ケーキお返しするし、一緒にパーティー行きたい！';
+                success = true;
+            }
+            box.innerHTML += `<div class="chat-msg-labi"><span class="chat-name">ラビ:</span> ${fallback}</div>`;
+            scrollLogToBottom();
+            if (success) { setTimeout(() => { playSound('fanfare'); changeScene('decorating','forward'); }, 1200); }
+        }
+    }
+
+    function useStrawberryOnLabi() {
+        playSound('fanfare'); removeItem('極上イチゴ');
+        const box = document.getElementById('ai-chat-box');
+        box.innerHTML += `<div class="chat-msg-player">🍓 極上イチゴをプレゼントした！「一緒に食べよう！」</div>`;
+        setTimeout(() => {
+            box.innerHTML += `<div class="chat-msg-labi"><span class="chat-name">ラビ:</span> うわぁぁぁ！これ、ボクが大好きな一番甘い高級いちごしゃん！！……うぅ、こんなに優しくしてもらえるなんて……ごめんなさい！ケーキ返すし、ボクもパーティーお手伝いするぅ！</div>`;
+            scrollLogToBottom();
+            setTimeout(() => changeScene('decorating','forward'), 1500);
+        }, 500);
+    }
+
+    function forceReclaim() {
+        playSound('click');
+        const box = document.getElementById('ai-chat-box');
+        box.innerHTML += `<div class="chat-msg-labi" style="border-color:rgba(224,112,112,.3);"><span class="chat-name" style="color:#E07070;">ラビ:</span> うわぁぁん！ごめんなさい、やっぱり怒られたぁ！！</div>`;
+        scrollLogToBottom();
+        const textLog = document.getElementById('dialogue-text');
+        textLog.textContent = 'ラビはケーキをその場に置いたまま、号泣してどこかへ逃げてしまった。ミッションは遂行されたが、どこか心が痛む……。\n\n（もっと良いアプローチがあったのではないだろうか？）';
+        document.getElementById('action-panel').innerHTML = `<button onclick="goToMap()" class="btn btn-secondary">📍 GPSマップに戻って捜査をやり直す</button>`;
+    }
+
+    // ==========================================
+    // DECORATION
+    // ==========================================
+    function updatePlateText(val) {
+        state.decorations.plateText = val;
+        document.getElementById('visual-area').innerHTML = SVG.decorating();
+    }
+    function finishDecorating() { playSound('fanfare'); changeScene('celebration','forward'); }
+
+    function blowCandle(idx) {
+        if (!state.candlesLit[idx]) return;
+        state.candlesLit[idx] = false; playSound('blow');
+        document.getElementById('visual-area').innerHTML = SVG.celebration();
+        if (state.candlesLit.every(l => !l)) {
+            setTimeout(() => {
+                playSound('fanfare');
+                document.getElementById('dialogue-text').innerHTML = `
+                    <span style="color:var(--accent-rose);font-weight:800;font-size:1.05rem;display:block;margin-bottom:.5rem;font-family:'Cinzel',serif;letter-spacing:.08em;">✨ HAPPY BIRTHDAY TO YOU !! ✨</span>
+                    見事にすべてのキャンドルが吹き消されました！🎂🕵️🕯️\nこれであなたの新しい1年間は、幸せとワクワクに満ちた素晴らしいミッションで溢れることでしょう！\n\nラビやエージェント仲間と一緒に、最高にハッピーなお誕生日をお過ごしください！🎁🎉`;
+            }, 600);
+        }
+    }
+
+    // ==========================================
+    // SCENE ELEMENT CLICKS
+    // ==========================================
+    function clickSceneElement(id) {
+        if (id === 'open_fridge') { playSound('click'); state.searched.fridgeOpened = true; changeScene('fridge'); }
+        else if (id === 'receipt') { gainItem('雑貨屋のレシート','📄','1時間前に発行されたレシート。'); state.unlocked.shop = true; changeScene('fridge'); }
+        else if (id === 'mud') { gainItem('泥の跡','👣','水分を含んだ黒い泥の痕跡。'); state.unlocked.park = true; changeScene('fridge'); }
+        else if (id === 'strawberry') {
+            playSound('click'); state.searched.shopStrawberryChecked = true;
+            document.getElementById('dialogue-text').textContent = '店主に特製ケーキ盗難について聞き取りを行うと、大慌てで言った。\n\n「ああっ、ケーキを泥棒したのだとしたらさっきの白いお耳のウサギの妖精さんだ！慌てて走って行ったよ！そういえばこれ、あの子がお祝い用に購入したお釣りを忘れていってね……お詫びと言ってはなんだが、彼の好物の【極上イチゴ】をお譲りしよう。説得の役に立てておくれ！」';
+            gainItem('極上イチゴ','🍓','店主から授かったツヤツヤの極上いちご。');
+            changeScene('shop');
+        }
+        else if (id === 'grass') { rustleGrass(); }
+        else if (id === 'key') { gainItem('アジトの鍵','🔑','公園の茂みの奥に隠されていた真鍮製の鍵。'); state.searched.parkKeyFound = true; state.unlocked.hideout = true; changeScene('park'); }
+        else if (id === 'add_strawberry') { if (state.decorations.strawberries < 5) { playSound('click'); state.decorations.strawberries++; document.getElementById('visual-area').innerHTML = SVG.decorating(); } }
+        else if (id === 'add_cream') { if (state.decorations.creams < 7) { playSound('click'); state.decorations.creams++; document.getElementById('visual-area').innerHTML = SVG.decorating(); } }
+        else if (id.startsWith('candle_')) { blowCandle(parseInt(id.split('_')[1])); }
+    }
+
+    function rustleGrass() { playSound('rustle'); state.searched.parkGrassRustleCount++; changeScene('park'); }
+
+    // ==========================================
+    // CONFETTI
+    // ==========================================
+    let confettiActive = false;
+    const confettis = [];
+    const confettiColors = ['#E27373','#CCD5AE','#D4A373','#FAF8F5','#EBE4D8','#F0A8A8','#B8CE98'];
+    const confettiShapes = ['rect','circle','triangle'];
+
+    function startConfetti() {
+        confettiActive = true;
+        const canvas = document.getElementById('confetti-canvas');
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+        const ctx = canvas.getContext('2d');
+        confettis.length = 0;
+        for (let i = 0; i < 100; i++) {
+            confettis.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height - canvas.height,
+                size: Math.random() * 7 + 4,
+                color: confettiColors[Math.floor(Math.random() * confettiColors.length)],
+                shape: confettiShapes[Math.floor(Math.random() * confettiShapes.length)],
+                speed: Math.random() * 2.5 + 1,
+                drift: Math.random() * 1.5 - .75,
+                rotation: Math.random() * 360,
+                rotationSpeed: Math.random() * 5 - 2.5,
+                opacity: .7 + Math.random() * .3
+            });
+        }
+        function draw() {
+            if (!confettiActive) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            confettis.forEach(c => {
+                c.y += c.speed; c.x += c.drift; c.rotation += c.rotationSpeed;
+                if (c.y > canvas.height) { c.y = -12; c.x = Math.random() * canvas.width; }
+                if (c.x > canvas.width + 20) c.x = -20;
+                if (c.x < -20) c.x = canvas.width + 20;
+                ctx.save(); ctx.globalAlpha = c.opacity;
+                ctx.translate(c.x, c.y); ctx.rotate(c.rotation * Math.PI / 180);
+                ctx.fillStyle = c.color;
+                if (c.shape === 'rect') { ctx.fillRect(-c.size/2, -c.size/2, c.size, c.size*.55); }
+                else if (c.shape === 'circle') { ctx.beginPath(); ctx.arc(0, 0, c.size/2, 0, Math.PI*2); ctx.fill(); }
+                else { ctx.beginPath(); ctx.moveTo(0, -c.size/2); ctx.lineTo(c.size/2, c.size/2); ctx.lineTo(-c.size/2, c.size/2); ctx.closePath(); ctx.fill(); }
+                ctx.restore();
+            });
+            requestAnimationFrame(draw);
+        }
+        draw();
+    }
+
+    function stopConfetti() {
+        confettiActive = false;
+        const canvas = document.getElementById('confetti-canvas');
+        canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+        confettis.length = 0;
+    }
+
+    // ==========================================
+    // HELPERS & SCENE ENGINE
+    // ==========================================
+    function showHeader() { document.getElementById('game-header').classList.add('visible'); }
+
+    function updateInventoryUI() {
+        for (let i = 0; i < 4; i++) {
+            const slot = document.getElementById(`slot-${i}`);
+            if (!slot) continue;
+            const tip = slot.querySelector('.inv-tooltip');
+            if (state.inventory[i]) {
+                const item = state.inventory[i];
+                slot.innerHTML = item.icon + '<div class="inv-tooltip"></div>';
+                slot.querySelector('.inv-tooltip').textContent = `${item.name}: ${item.desc}`;
+                slot.classList.add('filled');
+                slot.setAttribute('aria-label', item.name);
+                if (!slot.classList.contains('item-gain-flash')) {
+                    slot.classList.add('item-gain-flash');
+                    slot.addEventListener('animationend', () => slot.classList.remove('item-gain-flash'), { once: true });
+                }
+            } else {
+                slot.innerHTML = '📁<div class="inv-tooltip"></div>';
+                slot.classList.remove('filled','item-gain-flash');
+                slot.setAttribute('aria-label', '空きスロット');
+            }
+        }
+    }
+
+    function hasItem(name) { return state.inventory.some(i => i.name === name); }
+    function gainItem(name, icon, desc) {
+        if (state.inventory.length >= 4) return false;
+        state.inventory.push({ name, icon, desc });
+        playSound('item');
+        updateInventoryUI();
+        const log = document.getElementById('dialogue-text');
+        const orig = log.innerHTML;
+        log.innerHTML = `<span class="item-notify">✨ 証拠品【${name}】を獲得！</span>\n\n` + orig;
+        return true;
+    }
+    function removeItem(name) { state.inventory = state.inventory.filter(i => i.name !== name); updateInventoryUI(); }
+
+    // Typewriter with cursor
+    let typewriterTimer = null;
+    function changeScene(sceneId, direction) {
+        state.currentScene = sceneId;
+        const scene = scenes[sceneId];
+        document.getElementById('location-indicator').textContent = scene.location;
+
+        // Update progress
+        const prog = getProgress();
+        const fill = document.getElementById('progress-fill');
+        fill.style.width = prog + '%';
+        fill.parentElement.setAttribute('aria-valuenow', prog);
+
+        // Clear old text
+        if (typewriterTimer) { clearTimeout(typewriterTimer); typewriterTimer = null; }
+        const textEl = document.getElementById('dialogue-text');
+        textEl.textContent = '';
+
+        const rawText = typeof scene.text === 'function' ? scene.text() : scene.text;
+
+        // View Transitions API
+        function doUpdate() {
+            scene.render();
+            updateInventoryUI();
+            // Typewriter
+            let idx = 0;
+            let displayed = '';
+            const cursor = document.createElement('span');
+            cursor.className = 'cursor'; cursor.setAttribute('aria-hidden','true');
+            textEl.appendChild(cursor);
+            function type() {
+                if (state.currentScene !== sceneId) return;
+                if (idx < rawText.length) {
+                    displayed += rawText[idx];
+                    textEl.textContent = displayed;
+                    textEl.appendChild(cursor);
+                    idx++;
+                    typewriterTimer = setTimeout(type, 12);
+                } else {
+                    cursor.remove();
+                }
+            }
+            type();
+        }
+
+        if (document.startViewTransition && direction) {
+            document.startViewTransition({ update: doUpdate, types: [direction] });
+        } else {
+            doUpdate();
+        }
+    }
+
+    function startGame() {
+        state.playerName = 'Kay';
+        state.decorations.plateText = 'HPB KAY';
+        if (isMuted) toggleMute();
+        startMusic();
+        changeScene('fridge','forward');
+    }
+
+    function goToMap() { changeScene('map','forward'); }
+    function unlockHideout() { playSound('click'); removeItem('アジトの鍵'); changeScene('thiefRoom','forward'); }
+
+    function scrollLogToBottom() {
+        const c = document.getElementById('text-log-container');
+        setTimeout(() => { c.scrollTop = c.scrollHeight; }, 60);
+    }
+
+    function escapeHTML(s) {
+        return s.replace(/[&<>'"]/g, t => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'": '&#39;','"': '&quot;'}[t] || t));
+    }
+
+    function resetGame() {
+        stopConfetti(); stopMusic();
+        Object.assign(state, {
+            playerName: 'Kay', currentScene: 'title', inventory: [],
+            unlocked: { shop:false, park:false, hideout:false },
+            searched: { fridgeOpened:false, fridgeInsideChecked:false, mudChecked:false, parkGrassRustleCount:0, parkKeyFound:false, shopStrawberryChecked:false },
+            aiNegotiationState: 'start',
+            decorations: { strawberries:0, creams:0, plateText:'HAPPY BIRTHDAY' },
+            candlesLit: [true, true, true]
+        });
+        changeScene('title');
+    }
+
+    window.onload = () => changeScene('title');
+    </script>
+</body>
+</html>
