@@ -1,0 +1,44 @@
+name: Patch gift tracking button
+
+on:
+  push:
+    paths:
+      - gift-tracking-trigger.txt
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add gift tracking button to birthday popup
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          old = '''            <div class="gift-popup-note">誕プレは18〜22日くらいに届くよ🎁</div>
+            <button class="gift-popup-button" type="button" onclick="document.getElementById('gift-popup-backdrop')?.remove()">OK 🎂</button>'''
+          new = '''            <div class="gift-popup-note">誕プレは18〜22日くらいに届くよ🎁</div>
+            <a class="gift-popup-button" href="https://del.dhl.com/jsp/redirect_page.xhtml?AWB=3D7yh2uVfBC5g8wFIJ3iLA&amp;OSVA=xZuKi61SC25Y-htN8oTbXw&amp;locale=en-JP" target="_blank" rel="noopener noreferrer" style="display:block;text-decoration:none;box-sizing:border-box;margin-top:1rem;">誕プレ追跡 🚚</a>
+            <button class="gift-popup-button" type="button" onclick="document.getElementById('gift-popup-backdrop')?.remove()">OK 🎂</button>'''
+          if old not in s:
+              if '誕プレ追跡 🚚' in s:
+                  raise SystemExit('tracking button already exists')
+              raise SystemExit('target popup button block not found')
+          s = s.replace(old, new, 1)
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit tracking button patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Add gift tracking button to birthday popup"
+            git push
+          fi
