@@ -1,0 +1,63 @@
+name: Apply index patch
+
+on:
+  push:
+    paths:
+      - patch-trigger.txt
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch index.html safely
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          old_scene = """text: 'アジトに潜入すると、奪われた特製ケーキを守るように抱きかかえる、寂しがり屋のウサギの妖精「ラビ」がいた。\n\n「うぅ……ごめんなさい、ボク、誰もお誕生日を祝ってくれなくてすっごく寂しかったんだ……おいしそうなケーキを1回でお腹いっぱい食べてみたくて……」\n\n彼は怯えて震えている。説得チャット交渉を始めよう！',"""
+          new_scene = """text: 'アジトに潜入すると、奪われた特製ケーキを守るように抱きかかえる、Kayのことが大好きなウサギの妖精「ラビ」がいた。\n\n「……盗むつもりじゃなかったもん。ボク、Kayのことが大好きだから、いちばんキラキラした誕生日にしてあげたかったんだよぅ……。でも、どうしたら喜んでくれるかわからなくて……ケーキを見たら、これだ！って思っちゃったの……」\n\nラビはケーキをぎゅっと抱えて、少しだけ気まずそうにしている。優しく声をかけて、Kayの誕生日スタッフとして誘ってみよう！',"""
+          if old_scene in s:
+              s = s.replace(old_scene, new_scene)
+
+          s = s.replace("document.getElementById('ai-input-panel').classList.add('visible');", "document.getElementById('ai-input-panel').classList.remove('visible');", 1)
+
+          old_chat = """box.innerHTML = `<div class="chat-msg-labi"><span class="chat-name">ラビ:</span> うぅぅ…ごめんなさい、ボク怒られるのすごく怖いよぅ……。ボクだって誰かとお祝いしたかっただけんだもん……。</div>`;"""
+          new_chat = """box.innerHTML = `<div class="chat-msg-labi"><span class="chat-name">ラビ:</span> ……盗むつもりじゃなかったもん。ボク、Kayのことが大好きだから、いちばんキラキラした誕生日にしてあげたかったんだよぅ……。でも、ケーキを勝手に運んだのは……ちょっとだけ、いや、かなりダメだったかも……。</div>`;"""
+          s = s.replace(old_chat, new_chat)
+
+          s = s.replace(
+              "ゲームの状況：プレイヤー（ケーキ捜査官エージェント）が、寂しがりのウサギ妖精ラビ（あなた）のアジトを突き止めた。ラビは泣いて怯えている。穏和にケーキを返してもらい、仲間になるように対話する。",
+              "ゲームの状況：プレイヤー（ケーキ捜査官エージェント）が、Kayのことが大好きでサプライズを暴走させたウサギ妖精ラビ（あなた）のアジトを突き止めた。ラビは悪気はないが、ケーキを勝手に運んだことを少し反省している。優しく声をかけると、ケーキを返してKayの誕生日スタッフとして参加する。"
+          )
+          s = s.replace(
+              "うぅぅ…ごめんなさい、ボク怒られるのすごく怖いよぅ……。ボクだって誰かとお祝いしたかっただけんだもん……。",
+              "……盗むつもりじゃなかったもん。ボク、Kayのことが大好きだから、いちばんキラキラした誕生日にしてあげたかったんだよぅ……。でも、ケーキを勝手に運んだのは……ちょっとだけ、いや、かなりダメだったかも……。"
+          )
+          s = s.replace(
+              "あなたは誕生日ケーキをこっそり盗んでしまった、非常に寂しがり屋で繊細なウサギの妖精「ラビ」です。現在アジトでケーキを抱えて怯えています。",
+              "あなたはKayのことが大好きすぎて、最高のサプライズ誕生日を作ろうとしてケーキを勝手にアジトへ運んでしまったウサギの妖精「ラビ」です。現在アジトでケーキを抱えて、少し気まずそうにしています。"
+          )
+          s = s.replace(
+              "本当は悪い子ではなく、寂しいからお腹いっぱいケーキを食べたかった。",
+              "本当は悪い子ではなく、Kayを喜ばせたくて張り切りすぎただけ。ケーキを独り占めしたいのではなく、最高のサプライズ会場に運んだつもり。"
+          )
+
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit patched index
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update Labi dialogue and hide input box"
+            git push
+          fi
