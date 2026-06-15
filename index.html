@@ -12,6 +12,64 @@
   const html = await fetch('old.html?restore=' + Date.now()).then(r => r.text());
 
   const layoutFix = `<style>
+    .gift-popup-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.2rem;
+      background: rgba(48, 37, 31, .28);
+      backdrop-filter: blur(10px);
+      animation: giftFadeIn .28s ease-out both;
+    }
+    .gift-popup-card {
+      width: min(92vw, 420px);
+      padding: 1.6rem 1.35rem 1.35rem;
+      border-radius: 28px;
+      background: linear-gradient(145deg, rgba(255,255,255,.96), rgba(255,246,235,.96));
+      border: 1px solid rgba(212,163,115,.42);
+      box-shadow: 0 28px 80px rgba(90, 58, 39, .28);
+      text-align: center;
+      color: var(--text-main, #4a3a35);
+      animation: giftPop .38s cubic-bezier(.16,1,.3,1) both;
+    }
+    .gift-popup-title {
+      margin: 0 0 .65rem;
+      font-family: var(--font-serif, serif);
+      font-size: clamp(1.7rem, 7vw, 2.45rem);
+      letter-spacing: .08em;
+      color: var(--accent, #c47a52);
+    }
+    .gift-popup-message {
+      margin: 0;
+      font-weight: 800;
+      font-size: clamp(1rem, 4.4vw, 1.22rem);
+      line-height: 1.75;
+    }
+    .gift-popup-note {
+      margin-top: .75rem;
+      color: var(--text-muted, #8b7a72);
+      font-size: .88rem;
+      line-height: 1.6;
+    }
+    .gift-popup-button {
+      margin-top: 1.15rem;
+      width: 100%;
+      border: 0;
+      border-radius: 999px;
+      padding: .9rem 1rem;
+      background: linear-gradient(135deg, #d96f7f, #c98b5c);
+      color: white;
+      font-weight: 900;
+      font-size: 1rem;
+      box-shadow: 0 12px 28px rgba(201, 139, 92, .25);
+      cursor: pointer;
+    }
+    @keyframes giftFadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes giftPop { from { transform: translateY(16px) scale(.92); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+
     @media (max-width: 679px) {
       html, body {
         height: 100dvh !important;
@@ -76,6 +134,7 @@
     let micRAF = null;
     let blowFrames = 0;
     let blowCooldown = false;
+    let birthdayPopupShown = false;
 
     function setMicStatus(message) {
         const actionPanel = document.getElementById('action-panel');
@@ -88,6 +147,32 @@
             actionPanel.prepend(el);
         }
         el.textContent = message;
+    }
+
+    function closeBirthdayPopup() {
+        const el = document.getElementById('gift-popup-backdrop');
+        if (el) el.remove();
+    }
+
+    function showBirthdayPopup() {
+        if (birthdayPopupShown) return;
+        birthdayPopupShown = true;
+        closeBirthdayPopup();
+        const overlay = document.createElement('div');
+        overlay.id = 'gift-popup-backdrop';
+        overlay.className = 'gift-popup-backdrop';
+        overlay.innerHTML = \`
+          <div class="gift-popup-card" role="dialog" aria-modal="true" aria-label="Happy Birthday popup">
+            <h2 class="gift-popup-title">Happy Birthday!!</h2>
+            <p class="gift-popup-message">Kayさん、お誕生日おめでとう🎊💕</p>
+            <div class="gift-popup-note">誕プレは18〜22日くらいに届くよ🎁</div>
+            <button class="gift-popup-button" type="button" onclick="document.getElementById('gift-popup-backdrop')?.remove()">OK 🎂</button>
+          </div>
+        \`;
+        overlay.addEventListener('click', e => {
+            if (e.target === overlay) overlay.remove();
+        });
+        document.body.appendChild(overlay);
     }
 
     async function startBlowDetection() {
@@ -199,8 +284,8 @@
     .replace('// ==========================================\n    // DECORATION\n    // ==========================================', '// ==========================================\n    // BLOW MIC DETECTION\n    // ==========================================' + blowMicCode + '\n\n    // ==========================================\n    // DECORATION\n    // ==========================================')
     .replace('function finishDecorating() { playSound(\'fanfare\'); changeScene(\'celebration\',\'forward\'); }', 'function finishDecorating() { playSound(\'fanfare\'); changeScene(\'celebration\',\'forward\'); startBlowDetection(); }')
     .replace('（ケーキの上のロウソクをタップして、息を吹きかけて消してね！）', '（スマホ下部のマイクに向かって息を吹きかけると火が消えるよ！タップでも消せます🕯️）')
-    .replace('if (state.candlesLit.every(l => !l)) {', 'if (state.candlesLit.every(l => !l)) {\n            stopBlowDetection();')
-    .replace('function resetGame() {\n        stopConfetti(); stopMusic();', 'function resetGame() {\n        stopBlowDetection(); stopConfetti(); stopMusic();')
+    .replace('if (state.candlesLit.every(l => !l)) {', 'if (state.candlesLit.every(l => !l)) {\n            stopBlowDetection();\n            showBirthdayPopup();')
+    .replace('function resetGame() {\n        stopConfetti(); stopMusic();', 'function resetGame() {\n        closeBirthdayPopup(); birthdayPopupShown = false; stopBlowDetection(); stopConfetti(); stopMusic();')
     .replace('ゲームの状況：プレイヤー（ケーキ捜査官エージェント）が、寂しがりのウサギ妖精ラビ（あなた）のアジトを突き止めた。ラビは泣いて怯えている。穏和にケーキを返してもらい、仲間になるように対話する。', 'ゲームの状況：プレイヤー（ケーキ捜査官エージェント）が、Kayのことが大好きでサプライズを暴走させたウサギ妖精ラビ（あなた）のアジトを突き止めた。ラビは悪気はないが、ケーキを勝手に運んだことを少し反省している。優しく声をかけると、ケーキを返してKayの誕生日スタッフとして参加する。')
     .replace('うぅぅ…ごめんなさい、ボク怒られるのすごく怖いよぅ……。ボクだって誰かとお祝いしたかっただけんだもん……。', '……盗むつもりじゃなかったもん。ボク、Kayのことが大好きだから、いちばんキラキラした誕生日にしてあげたかったんだよぅ……。でも、ケーキを勝手に運んだのは……ちょっとだけ、いや、かなりダメだったかも……。')
     .replace('あなたは誕生日ケーキをこっそり盗んでしまった、非常に寂しがり屋で繊細なウサギの妖精「ラビ」です。現在アジトでケーキを抱えて怯えています。', 'あなたはKayのことが大好きすぎて、最高のサプライズ誕生日を作ろうとしてケーキを勝手にアジトへ運んでしまったウサギの妖精「ラビ」です。現在アジトでケーキを抱えて、少し気まずそうにしています。')
