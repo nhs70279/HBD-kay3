@@ -96,7 +96,7 @@
             setMicStatus('🎤 このブラウザではマイク検出が使えません。ロウソクをタップして消してね。');
             return;
         }
-        setMicStatus('🎤 マイク許可をお願いします。許可したら、ロウソクに向かってふーっと吹いてね。');
+        setMicStatus('🎤 マイク許可をお願いします。許可したら、スマホ下部のマイクに向かってふーっと吹いてね。');
         try {
             if (audioCtx.state === 'suspended') await audioCtx.resume();
             micStream = await navigator.mediaDevices.getUserMedia({
@@ -107,7 +107,7 @@
             micAnalyser.fftSize = 1024;
             micSource.connect(micAnalyser);
             const data = new Uint8Array(micAnalyser.fftSize);
-            setMicStatus('🎤 準備OK！ロウソクに向かって「ふーっ」と吹いてね。タップでも消せます。');
+            setMicStatus('🎤 準備OK！スマホ下部のマイクに向かって「ふーっ」と吹いてね。タップでも消せます。');
 
             function tick() {
                 if (!micAnalyser || state.currentScene !== 'celebration') return;
@@ -134,7 +134,7 @@
                         setTimeout(() => {
                             blowCooldown = false;
                             if (state.currentScene === 'celebration' && state.candlesLit.some(Boolean)) {
-                                setMicStatus('🎤 次のロウソクにも、もう一回ふーっと吹いてね。');
+                                setMicStatus('🎤 次もスマホ下部のマイクに向かって、もう一回ふーっと吹いてね。');
                             }
                         }, 900);
                     }
@@ -198,7 +198,7 @@
     .replace('g.gain.linearRampToValueAtTime(0.03,now+0.02);', 'g.gain.linearRampToValueAtTime(0.085,now+0.02);')
     .replace('// ==========================================\n    // DECORATION\n    // ==========================================', '// ==========================================\n    // BLOW MIC DETECTION\n    // ==========================================' + blowMicCode + '\n\n    // ==========================================\n    // DECORATION\n    // ==========================================')
     .replace('function finishDecorating() { playSound(\'fanfare\'); changeScene(\'celebration\',\'forward\'); }', 'function finishDecorating() { playSound(\'fanfare\'); changeScene(\'celebration\',\'forward\'); startBlowDetection(); }')
-    .replace('（ケーキの上のロウソクをタップして、息を吹きかけて消してね！）', '（マイクに向かって息を吹きかけると火が消えるよ！タップでも消せます🕯️）')
+    .replace('（ケーキの上のロウソクをタップして、息を吹きかけて消してね！）', '（スマホ下部のマイクに向かって息を吹きかけると火が消えるよ！タップでも消せます🕯️）')
     .replace('if (state.candlesLit.every(l => !l)) {', 'if (state.candlesLit.every(l => !l)) {\n            stopBlowDetection();')
     .replace('function resetGame() {\n        stopConfetti(); stopMusic();', 'function resetGame() {\n        stopBlowDetection(); stopConfetti(); stopMusic();')
     .replace('ゲームの状況：プレイヤー（ケーキ捜査官エージェント）が、寂しがりのウサギ妖精ラビ（あなた）のアジトを突き止めた。ラビは泣いて怯えている。穏和にケーキを返してもらい、仲間になるように対話する。', 'ゲームの状況：プレイヤー（ケーキ捜査官エージェント）が、Kayのことが大好きでサプライズを暴走させたウサギ妖精ラビ（あなた）のアジトを突き止めた。ラビは悪気はないが、ケーキを勝手に運んだことを少し反省している。優しく声をかけると、ケーキを返してKayの誕生日スタッフとして参加する。')
