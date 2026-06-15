@@ -84,6 +84,7 @@
     .replace('<!-- Cake body -->\n            <g class="floating" filter="url(#cake-shadow)">', '<!-- Cake body -->\n            <g class="floating" filter="url(#cake-shadow)" transform="translate(200 205) scale(1.18) translate(-200 -205)">')
     .replace('<!-- Cake body -->\n            <g class="floating" filter="url(#cel-shadow)">', '<!-- Cake body -->\n            <g class="floating" filter="url(#cel-shadow)" transform="translate(200 200) scale(1.18) translate(-200 -200)">')
     .replace('<g id="candle-${i}" class="interactive-el" onclick="clickSceneElement(\'candle_${i}\')">', '<g id="candle-${i}" class="interactive-el" onclick="clickSceneElement(\'candle_${i}\')">\n                    <circle cx="${x}" cy="132" r="28" fill="transparent" style="pointer-events:all;"/>')
+    .replace('g.gain.linearRampToValueAtTime(0.03,now+0.02);', 'g.gain.linearRampToValueAtTime(0.085,now+0.02);')
     .replace('ゲームの状況：プレイヤー（ケーキ捜査官エージェント）が、寂しがりのウサギ妖精ラビ（あなた）のアジトを突き止めた。ラビは泣いて怯えている。穏和にケーキを返してもらい、仲間になるように対話する。', 'ゲームの状況：プレイヤー（ケーキ捜査官エージェント）が、Kayのことが大好きでサプライズを暴走させたウサギ妖精ラビ（あなた）のアジトを突き止めた。ラビは悪気はないが、ケーキを勝手に運んだことを少し反省している。優しく声をかけると、ケーキを返してKayの誕生日スタッフとして参加する。')
     .replace('うぅぅ…ごめんなさい、ボク怒られるのすごく怖いよぅ……。ボクだって誰かとお祝いしたかっただけんだもん……。', '……盗むつもりじゃなかったもん。ボク、Kayのことが大好きだから、いちばんキラキラした誕生日にしてあげたかったんだよぅ……。でも、ケーキを勝手に運んだのは……ちょっとだけ、いや、かなりダメだったかも……。')
     .replace('あなたは誕生日ケーキをこっそり盗んでしまった、非常に寂しがり屋で繊細なウサギの妖精「ラビ」です。現在アジトでケーキを抱えて怯えています。', 'あなたはKayのことが大好きすぎて、最高のサプライズ誕生日を作ろうとしてケーキを勝手にアジトへ運んでしまったウサギの妖精「ラビ」です。現在アジトでケーキを抱えて、少し気まずそうにしています。')
