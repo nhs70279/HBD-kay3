@@ -54,8 +54,112 @@
       .action-panel {
         padding-bottom: max(.55rem, env(safe-area-inset-bottom)) !important;
       }
+      .mic-status {
+        margin-bottom: .65rem;
+        padding: .65rem .8rem;
+        border-radius: 16px;
+        background: rgba(255,255,255,.82);
+        border: 1px solid rgba(212,163,115,.35);
+        color: var(--text-muted);
+        font-weight: 700;
+        font-size: .78rem;
+        line-height: 1.5;
+        text-align: center;
+      }
     }
   </style>`;
+
+  const blowMicCode = `
+    let micStream = null;
+    let micSource = null;
+    let micAnalyser = null;
+    let micRAF = null;
+    let blowFrames = 0;
+    let blowCooldown = false;
+
+    function setMicStatus(message) {
+        const actionPanel = document.getElementById('action-panel');
+        if (!actionPanel) return;
+        let el = document.getElementById('mic-status');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'mic-status';
+            el.className = 'mic-status';
+            actionPanel.prepend(el);
+        }
+        el.textContent = message;
+    }
+
+    async function startBlowDetection() {
+        if (micStream || state.currentScene !== 'celebration') return;
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            setMicStatus('🎤 このブラウザではマイク検出が使えません。ロウソクをタップして消してね。');
+            return;
+        }
+        setMicStatus('🎤 マイク許可をお願いします。許可したら、ロウソクに向かってふーっと吹いてね。');
+        try {
+            if (audioCtx.state === 'suspended') await audioCtx.resume();
+            micStream = await navigator.mediaDevices.getUserMedia({
+                audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+            });
+            micSource = audioCtx.createMediaStreamSource(micStream);
+            micAnalyser = audioCtx.createAnalyser();
+            micAnalyser.fftSize = 1024;
+            micSource.connect(micAnalyser);
+            const data = new Uint8Array(micAnalyser.fftSize);
+            setMicStatus('🎤 準備OK！ロウソクに向かって「ふーっ」と吹いてね。タップでも消せます。');
+
+            function tick() {
+                if (!micAnalyser || state.currentScene !== 'celebration') return;
+                micAnalyser.getByteTimeDomainData(data);
+                let sum = 0;
+                let peak = 0;
+                for (let i = 0; i < data.length; i++) {
+                    const v = Math.abs(data[i] - 128);
+                    sum += v * v;
+                    if (v > peak) peak = v;
+                }
+                const rms = Math.sqrt(sum / data.length) / 128;
+                const peakNorm = peak / 128;
+                const isBlow = rms > 0.075 || (peakNorm > 0.34 && rms > 0.05);
+                blowFrames = isBlow ? blowFrames + 1 : Math.max(0, blowFrames - 1);
+
+                if (blowFrames >= 3 && !blowCooldown) {
+                    const idx = state.candlesLit.findIndex(Boolean);
+                    if (idx >= 0) {
+                        blowCooldown = true;
+                        blowFrames = 0;
+                        setMicStatus('💨 ふーっ！ロウソクが消えた！');
+                        blowCandle(idx);
+                        setTimeout(() => {
+                            blowCooldown = false;
+                            if (state.currentScene === 'celebration' && state.candlesLit.some(Boolean)) {
+                                setMicStatus('🎤 次のロウソクにも、もう一回ふーっと吹いてね。');
+                            }
+                        }, 900);
+                    }
+                }
+                micRAF = requestAnimationFrame(tick);
+            }
+            tick();
+        } catch (e) {
+            setMicStatus('🎤 マイクが許可されませんでした。ロウソクはタップでも消せます。');
+        }
+    }
+
+    function stopBlowDetection() {
+        if (micRAF) cancelAnimationFrame(micRAF);
+        micRAF = null;
+        micAnalyser = null;
+        micSource = null;
+        blowFrames = 0;
+        blowCooldown = false;
+        if (micStream) {
+            micStream.getTracks().forEach(track => track.stop());
+            micStream = null;
+        }
+    }
+`;
 
   const oldScene = `text: 'アジトに潜入すると、奪われた特製ケーキを守るように抱きかかえる、寂しがり屋のウサギの妖精「ラビ」がいた。\\n\\n「うぅ……ごめんなさい、ボク、誰もお誕生日を祝ってくれなくてすっごく寂しかったんだ……おいしそうなケーキを1回でお腹いっぱい食べてみたくて……」\\n\\n彼は怯えて震えている。説得チャット交渉を始めよう！',`;
   const newScene = `text: 'アジトに潜入すると、奪われた特製ケーキを守るように抱きかかえる、Kayのことが大好きなウサギの妖精「ラビ」がいた。\\n\\nラビはケーキをぎゅっと抱えて、少しだけ気まずそうにしている。\\nどうやらKayさんを喜ばせたくて、サプライズ準備を暴走させてしまったらしい。\\n\\n優しく声をかけて、Kayの誕生日スタッフとして誘ってみよう！',`;
@@ -85,6 +189,11 @@
     .replace('<!-- Cake body -->\n            <g class="floating" filter="url(#cel-shadow)">', '<!-- Cake body -->\n            <g class="floating" filter="url(#cel-shadow)" transform="translate(200 200) scale(1.18) translate(-200 -200)">')
     .replace('<g id="candle-${i}" class="interactive-el" onclick="clickSceneElement(\'candle_${i}\')">', '<g id="candle-${i}" class="interactive-el" onclick="clickSceneElement(\'candle_${i}\')">\n                    <circle cx="${x}" cy="132" r="28" fill="transparent" style="pointer-events:all;"/>')
     .replace('g.gain.linearRampToValueAtTime(0.03,now+0.02);', 'g.gain.linearRampToValueAtTime(0.085,now+0.02);')
+    .replace('// ==========================================\n    // DECORATION\n    // ==========================================', '// ==========================================\n    // BLOW MIC DETECTION\n    // ==========================================' + blowMicCode + '\n\n    // ==========================================\n    // DECORATION\n    // ==========================================')
+    .replace('function finishDecorating() { playSound(\'fanfare\'); changeScene(\'celebration\',\'forward\'); }', 'function finishDecorating() { playSound(\'fanfare\'); changeScene(\'celebration\',\'forward\'); startBlowDetection(); }')
+    .replace('（ケーキの上のロウソクをタップして、息を吹きかけて消してね！）', '（マイクに向かって息を吹きかけると火が消えるよ！タップでも消せます🕯️）')
+    .replace('if (state.candlesLit.every(l => !l)) {', 'if (state.candlesLit.every(l => !l)) {\n            stopBlowDetection();')
+    .replace('function resetGame() {\n        stopConfetti(); stopMusic();', 'function resetGame() {\n        stopBlowDetection(); stopConfetti(); stopMusic();')
     .replace('ゲームの状況：プレイヤー（ケーキ捜査官エージェント）が、寂しがりのウサギ妖精ラビ（あなた）のアジトを突き止めた。ラビは泣いて怯えている。穏和にケーキを返してもらい、仲間になるように対話する。', 'ゲームの状況：プレイヤー（ケーキ捜査官エージェント）が、Kayのことが大好きでサプライズを暴走させたウサギ妖精ラビ（あなた）のアジトを突き止めた。ラビは悪気はないが、ケーキを勝手に運んだことを少し反省している。優しく声をかけると、ケーキを返してKayの誕生日スタッフとして参加する。')
     .replace('うぅぅ…ごめんなさい、ボク怒られるのすごく怖いよぅ……。ボクだって誰かとお祝いしたかっただけんだもん……。', '……盗むつもりじゃなかったもん。ボク、Kayのことが大好きだから、いちばんキラキラした誕生日にしてあげたかったんだよぅ……。でも、ケーキを勝手に運んだのは……ちょっとだけ、いや、かなりダメだったかも……。')
     .replace('あなたは誕生日ケーキをこっそり盗んでしまった、非常に寂しがり屋で繊細なウサギの妖精「ラビ」です。現在アジトでケーキを抱えて怯えています。', 'あなたはKayのことが大好きすぎて、最高のサプライズ誕生日を作ろうとしてケーキを勝手にアジトへ運んでしまったウサギの妖精「ラビ」です。現在アジトでケーキを抱えて、少し気まずそうにしています。')
