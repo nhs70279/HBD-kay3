@@ -1,0 +1,39 @@
+name: Patch BGM volume
+
+on:
+  push:
+    paths:
+      - bgm-volume-trigger.txt
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Increase BGM volume
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          old = "g.gain.linearRampToValueAtTime(0.085,now+0.02);"
+          new = "g.gain.linearRampToValueAtTime(0.14,now+0.02);"
+          if old not in s:
+              raise SystemExit('target BGM volume line not found')
+          s = s.replace(old, new, 1)
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit BGM patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Increase BGM volume again"
+            git push
+          fi
