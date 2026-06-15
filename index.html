@@ -167,6 +167,12 @@
   const oldChat = `box.innerHTML = \`<div class="chat-msg-labi"><span class="chat-name">ラビ:</span> うぅぅ…ごめんなさい、ボク怒られるのすごく怖いよぅ……。ボクだって誰かとお祝いしたかっただけんだもん……。</div>\`;`;
   const newChat = `box.innerHTML = \`<div class="chat-msg-labi"><span class="chat-name">ラビ:</span> ……盗むつもりじゃなかったもん。ボク、Kayのことが大好きだから、いちばんキラキラした誕生日にしてあげたかったんだよぅ……。でも、ケーキを勝手に運んだのは……ちょっとだけ、いや、かなりダメだったかも……。</div>\`;`;
 
+  const oldShopText = `text: '落ち着いた外観の雑貨屋。ショーウィンドウには地元名産の果物が並んでいる。店主に話しかけてみよう。\\n\\nまずは【輝くイチゴ】のケースをタップして確認しよう。',`;
+  const newShopText = `text() {
+                if (hasItem('極上イチゴ')) return '店主から、ラビの好物「極上イチゴ」を受け取った。\\n\\nこれでラビに優しく声をかける準備はできた。次はマップに戻って、公園の手がかりやアジトの鍵を探そう。';
+                return '落ち着いた外観の雑貨屋。ショーウィンドウには地元名産の果物が並んでいる。店主に話しかけてみよう。\\n\\nまずは【輝くイチゴ】のケースをタップして確認しよう。';
+            },`;
+
   const oldDecoratingCream = `for (let i = 0; i < state.decorations.creams; i++) {
                 const x = 125 + i * 22;
                 crSvg += \`<path class="scene-fade" d="M\${x} 205 Q\${x+8} 191 \${x+16} 205 Q\${x+18} 208 \${x+16} 210 L\${x} 210 Q\${x-2} 208 \${x} 205 Z" fill="#FAF8F5" stroke="#D4C0A0" stroke-width="1.5"/>\`;
@@ -182,6 +188,7 @@
   const patched = html
     .replace('</head>', layoutFix + '</head>')
     .replace(oldScene, newScene)
+    .replace(oldShopText, newShopText)
     .replace("document.getElementById('ai-input-panel').classList.add('visible');", "document.getElementById('ai-input-panel').classList.remove('visible');")
     .replace(oldChat, newChat)
     .replace(oldDecoratingCream, newDecoratingCream)
